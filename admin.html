@@ -108,6 +108,14 @@
             <button type="submit">Speichern</button>
         </form>
     </section>
+    <section>
+        <h2>Datenschutzerklärung bearbeiten</h2>
+        <form id="privacy-form">
+            <label for="privacy-text">Text:</label>
+            <textarea id="privacy-text" placeholder="Text für die Datenschutzerklärung eingeben" required></textarea>
+            <button type="submit">Speichern</button>
+        </form>
+    </section>
 </main>
 <footer>
     <p>Kontakt: <span id="footer-email">thunderflash@tth-projects.de</span></p>
@@ -430,12 +438,46 @@
         alert('Text für "Über Uns" wurde erfolgreich gespeichert!');
     });
 
+    // Datenschutzerklärung abrufen und anzeigen
+    async function fetchPrivacyText() {
+        try {
+            const response = await fetch('/privacy.json');
+            const privacyData = await response.json();
+            document.getElementById('privacy-text').value = privacyData.text || '';
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Datenschutzerklärung:', error);
+        }
+    }
+
+    // Datenschutzerklärung speichern
+    document.getElementById('privacy-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const privacyText = document.getElementById('privacy-text').value;
+
+        try {
+            const response = await fetch('/privacy.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: privacyText })
+            });
+
+            if (response.ok) {
+                alert('Datenschutzerklärung erfolgreich gespeichert!');
+            } else {
+                alert('Fehler beim Speichern der Datenschutzerklärung.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Speichern der Datenschutzerklärung:', error);
+        }
+    });
+
     // Initiale Daten laden
     fetchProjects();
     fetchIps();
     fetchPolls();
     fetchNews();
     fetchAboutText();
+    fetchPrivacyText();
 </script>
 </body>
 </html>

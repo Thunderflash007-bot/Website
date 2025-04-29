@@ -18,6 +18,10 @@
     </header>
     <main>
         <section>
+            <h2>Datenschutzerklärung</h2>
+            <p id="privacy-content">Lade Datenschutzerklärung...</p>
+        </section>
+        <section>
             <h2>Welche Daten speichern wir?</h2>
             <p>Wir speichern nur die Daten, die Sie uns aktiv übermitteln, sowie Ihre öffentliche IP-Adresse. Diese wird benötigt, um Berechtigungen zuzuweisen und die Teilnahme an Umfragen zu ermöglichen.</p>
         </section>
@@ -49,6 +53,19 @@
     }
 
     document.addEventListener('DOMContentLoaded', updateFooterEmail);
+
+    // Datenschutzerklärung abrufen und anzeigen
+    async function fetchPrivacyText() {
+        try {
+            const response = await fetch('/privacy.json');
+            const privacyData = await response.json();
+            document.getElementById('privacy-content').textContent = privacyData.text || 'Keine Datenschutzerklärung verfügbar.';
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Datenschutzerklärung:', error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchPrivacyText);
 </script>
 </body>
 </html>

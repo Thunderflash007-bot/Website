@@ -28,9 +28,14 @@ server.on('error', (err) => {
     }
 });
 
+// Hilfsfunktion für plattformübergreifende Pfade
+function getFilePath(fileName) {
+    return path.join(__dirname, fileName);
+}
+
 // Projekte abrufen
 app.get('/projects.json', (req, res) => {
-    fs.readFile('./projects.json', 'utf8', (err, data) => {
+    fs.readFile(getFilePath('projects.json'), 'utf8', (err, data) => {
         if (err) {
             console.error('Fehler beim Lesen der Projekte:', err);
             res.status(500).send('Fehler beim Abrufen der Projekte.');
@@ -43,14 +48,14 @@ app.get('/projects.json', (req, res) => {
 // Projekt hinzufügen
 app.post('/projects.json', (req, res) => {
     const newProject = req.body;
-    fs.readFile('./projects.json', 'utf8', (err, data) => {
+    fs.readFile(getFilePath('projects.json'), 'utf8', (err, data) => {
         if (err) {
             console.error('Fehler beim Lesen der Projekte:', err);
             res.status(500).send('Fehler beim Hinzufügen des Projekts.');
         } else {
             const projects = JSON.parse(data);
             projects.push(newProject);
-            fs.writeFile('./projects.json', JSON.stringify(projects, null, 2), (err) => {
+            fs.writeFile(getFilePath('projects.json'), JSON.stringify(projects, null, 2), (err) => {
                 if (err) {
                     console.error('Fehler beim Speichern des Projekts:', err);
                     res.status(500).send('Fehler beim Speichern des Projekts.');
@@ -65,14 +70,14 @@ app.post('/projects.json', (req, res) => {
 // Projekt löschen
 app.delete('/projects.json', (req, res) => {
     const projectId = req.query.id;
-    fs.readFile('./projects.json', 'utf8', (err, data) => {
+    fs.readFile(getFilePath('projects.json'), 'utf8', (err, data) => {
         if (err) {
             console.error('Fehler beim Lesen der Projekte:', err);
             res.status(500).send('Fehler beim Löschen des Projekts.');
         } else {
             const projects = JSON.parse(data);
             const updatedProjects = projects.filter(project => project.id !== projectId);
-            fs.writeFile('./projects.json', JSON.stringify(updatedProjects, null, 2), (err) => {
+            fs.writeFile(getFilePath('projects.json'), JSON.stringify(updatedProjects, null, 2), (err) => {
                 if (err) {
                     console.error('Fehler beim Speichern der Projekte:', err);
                     res.status(500).send('Fehler beim Löschen des Projekts.');
@@ -84,9 +89,34 @@ app.delete('/projects.json', (req, res) => {
     });
 });
 
+// Datenschutzerklärung abrufen
+app.get('/privacy.json', (req, res) => {
+    fs.readFile(getFilePath('privacy.json'), 'utf8', (err, data) => {
+        if (err) {
+            console.error('Fehler beim Lesen der Datenschutzerklärung:', err);
+            res.status(500).send('Fehler beim Abrufen der Datenschutzerklärung.');
+        } else {
+            res.json(JSON.parse(data));
+        }
+    });
+});
+
+// Datenschutzerklärung speichern
+app.post('/privacy.json', (req, res) => {
+    const newPrivacyData = req.body;
+    fs.writeFile(getFilePath('privacy.json'), JSON.stringify(newPrivacyData, null, 2), (err) => {
+        if (err) {
+            console.error('Fehler beim Speichern der Datenschutzerklärung:', err);
+            res.status(500).send('Fehler beim Speichern der Datenschutzerklärung.');
+        } else {
+            res.status(201).send('Datenschutzerklärung gespeichert.');
+        }
+    });
+});
+
 // Allgemeine Funktion zum Abrufen von JSON-Dateien
 app.get('/:file', (req, res) => {
-    const filePath = `./${req.params.file}`;
+    const filePath = getFilePath(req.params.file);
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
             console.error(`Fehler beim Lesen der Datei ${req.params.file}:`, err);
@@ -99,7 +129,7 @@ app.get('/:file', (req, res) => {
 
 // Allgemeine Funktion zum Aktualisieren von JSON-Dateien
 app.post('/:file', (req, res) => {
-    const filePath = `./${req.params.file}`;
+    const filePath = getFilePath(req.params.file);
     const newData = req.body;
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
@@ -113,7 +143,7 @@ app.post('/:file', (req, res) => {
                     console.error(`Fehler beim Speichern der Datei ${req.params.file}:`, err);
                     res.status(500).send(`Fehler beim Speichern der Datei ${req.params.file}.`);
                 } else {
-                    res.status(201).send(`Eintrag in ${req.params.file} hinzugefügt.`);
+                    res.status(201).send(`Eintrag in ${req.params.file hinzugefügt.`);
                 }
             });
         }
@@ -122,7 +152,7 @@ app.post('/:file', (req, res) => {
 
 // Allgemeine Funktion zum Löschen von Einträgen in JSON-Dateien
 app.delete('/:file', (req, res) => {
-    const filePath = `./${req.params.file}`;
+    const filePath = getFilePath(req.params.file);
     const id = req.query.id;
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
