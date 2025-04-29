@@ -143,7 +143,7 @@ app.post('/:file', (req, res) => {
                     console.error(`Fehler beim Speichern der Datei ${req.params.file}:`, err);
                     res.status(500).send(`Fehler beim Speichern der Datei ${req.params.file}.`);
                 } else {
-                    res.status(201).send(`Eintrag in ${req.params.file hinzugefügt.`);
+                    res.status(201).send(`Eintrag in ${req.params.file} hinzugefügt.`);
                 }
             });
         }
