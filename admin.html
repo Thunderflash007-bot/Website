@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Bereich</title>
     <link rel="stylesheet" href="styles.css">
+    <script>
+        // Passwortschutz für die Admin-Seite
+        document.addEventListener('DOMContentLoaded', () => {
+            const adminPassword = '2q-tth';
+            const userPassword = prompt('Bitte geben Sie das Admin-Passwort ein:');
+            if (userPassword !== adminPassword) {
+                alert('Falsches Passwort! Zugriff verweigert.');
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
 </head>
 <body>
 <header>
@@ -127,6 +138,27 @@
             projektListe.appendChild(li);
         });
     }
+
+    // Projekt erstellen
+    document.getElementById('projekt-erstellen-btn').addEventListener('click', () => {
+        const projectName = prompt('Bitte geben Sie den Projektnamen ein:');
+        const projectDescription = prompt('Bitte geben Sie die Projektbeschreibung ein:');
+        if (projectName && projectDescription) {
+            const projects = JSON.parse(localStorage.getItem('projects')) || [];
+            projects.push({
+                id: Date.now().toString(),
+                name: projectName,
+                description: projectDescription,
+                status: 'offline',
+                serverIp: ''
+            });
+            localStorage.setItem('projects', JSON.stringify(projects));
+            alert('Projekt erfolgreich erstellt!');
+            fetchProjects();
+        } else {
+            alert('Projekterstellung abgebrochen. Bitte geben Sie alle Informationen ein.');
+        }
+    });
 
     // Status-Text mit Emoji basierend auf dem Status zurückgeben
     function getStatusText(status) {
