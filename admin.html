@@ -122,43 +122,71 @@
     });
 
     // Projekte abrufen und anzeigen
-    function fetchProjects() {
-        const projects = JSON.parse(localStorage.getItem('projects')) || [];
-        const projektListe = document.getElementById('projekt-liste');
-        projektListe.innerHTML = '';
-        projects.forEach(project => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${project.name}</strong>: ${project.description}
-                <p>Status: ${getStatusText(project.status)}</p>
-                <p>Server-IP: ${project.serverIp || 'Nicht angegeben'}</p>
-                <button onclick="editProject('${project.id}')">Bearbeiten</button>
-                <button onclick="deleteProject('${project.id}')">Löschen</button>
-            `;
-            projektListe.appendChild(li);
-        });
+    async function fetchProjects() {
+        try {
+            const response = await fetch('/projects.json');
+            const projects = await response.json();
+            const projektListe = document.getElementById('projekt-liste');
+            projektListe.innerHTML = '';
+            projects.forEach(project => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <strong>${project.name}</strong>: ${project.description}
+                    <p>Status: ${getStatusText(project.status)}</p>
+                    <button onclick="deleteProject('${project.id}')">Löschen</button>
+                `;
+                projektListe.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Projekte:', error);
+        }
     }
 
     // Projekt erstellen
-    document.getElementById('projekt-erstellen-btn').addEventListener('click', () => {
+    async function createProject() {
         const projectName = prompt('Bitte geben Sie den Projektnamen ein:');
         const projectDescription = prompt('Bitte geben Sie die Projektbeschreibung ein:');
         if (projectName && projectDescription) {
-            const projects = JSON.parse(localStorage.getItem('projects')) || [];
-            projects.push({
+            const newProject = {
                 id: Date.now().toString(),
                 name: projectName,
                 description: projectDescription,
-                status: 'offline',
-                serverIp: ''
-            });
-            localStorage.setItem('projects', JSON.stringify(projects));
-            alert('Projekt erfolgreich erstellt!');
-            fetchProjects();
+                status: 'offline'
+            };
+            try {
+                const response = await fetch('/projects.json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newProject)
+                });
+                if (response.ok) {
+                    alert('Projekt erfolgreich erstellt!');
+                    fetchProjects();
+                } else {
+                    alert('Fehler beim Erstellen des Projekts.');
+                }
+            } catch (error) {
+                console.error('Fehler beim Erstellen des Projekts:', error);
+            }
         } else {
             alert('Projekterstellung abgebrochen. Bitte geben Sie alle Informationen ein.');
         }
-    });
+    }
+
+    // Projekt löschen
+    async function deleteProject(id) {
+        try {
+            const response = await fetch(`/projects.json?id=${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                alert('Projekt erfolgreich gelöscht!');
+                fetchProjects();
+            } else {
+                alert('Fehler beim Löschen des Projekts.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Löschen des Projekts:', error);
+        }
+    }
 
     // Status-Text mit Emoji basierend auf dem Status zurückgeben
     function getStatusText(status) {
@@ -184,14 +212,6 @@
 
         localStorage.setItem('projects', JSON.stringify(projects));
         alert('Projekt erfolgreich gespeichert!');
-        fetchProjects();
-    }
-
-    // Projekt löschen
-    function deleteProject(id) {
-        const projects = JSON.parse(localStorage.getItem('projects')) || [];
-        const updatedProjects = projects.filter(p => p.id !== id);
-        localStorage.setItem('projects', JSON.stringify(updatedProjects));
         fetchProjects();
     }
 
