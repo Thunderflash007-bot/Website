@@ -4,7 +4,7 @@
   "description": "Eine Website für Gaming-Projekte",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "concurrently \"node server.js\" \"http-server ./ -p 8080\"",
     "dev": "npm start",
     "setup-nginx": "sudo apt update && sudo apt install nginx -y && sudo cp ./nginx.conf /etc/nginx/sites-available/tth-projects && sudo ln -s /etc/nginx/sites-available/tth-projects /etc/nginx/sites-enabled/ && sudo nginx -t && sudo systemctl restart nginx"
   },
