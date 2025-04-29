@@ -89,8 +89,27 @@
             <button type="submit">Speichern</button>
         </form>
     </section>
+    <section>
+        <h2>Admin-E-Mail ändern</h2>
+        <form id="email-form">
+            <label for="admin-email">Neue E-Mail-Adresse:</label>
+            <input type="email" id="admin-email" placeholder="z. B. admin@tth-projects.de" required>
+            <button type="submit">Speichern</button>
+        </form>
+    </section>
 </main>
+<footer>
+    <p>Kontakt: <span id="footer-email">thunderflash@tth-projects.de</span></p>
+</footer>
 <script>
+    // Admin-E-Mail speichern
+    document.getElementById('email-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('admin-email').value;
+        localStorage.setItem('adminEmail', email);
+        alert('Admin-E-Mail wurde erfolgreich geändert!');
+    });
+
     // Projekte abrufen und anzeigen
     function fetchProjects() {
         const projects = JSON.parse(localStorage.getItem('projects')) || [];

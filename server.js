@@ -24,6 +24,6 @@ server.on('error', (err) => {
             console.log(`Server läuft jetzt auf http://localhost:${alternativePort}`);
         });
     } else {
-        console.error('Serverfehler:', err);
+        console.error('Ein Serverfehler ist aufgetreten.');
     }
 });

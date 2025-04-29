@@ -16,6 +16,7 @@
                 <li><a href="#kontakt">Kontakt</a></li>
                 <li id="admin-link" style="display: none;"><a href="admin.html">Admin</a></li>
                 <li><a href="polls.html">Umfragen</a></li>
+                <li><a href="privacy.html">Datenschutz</a></li>
             </ul>
         </nav>
     </header>
@@ -49,158 +50,167 @@
             </ul>
         </section>
     </main>
-    <!-- Entferne den Footer -->
-    <!-- <footer>
-        <p>&copy; 2023 Gaming Projekte. Alle Rechte vorbehalten.</p>
-    </footer> -->
-    <script>
-        // Projekte abrufen und auf der Startseite anzeigen
-        function fetchProjects() {
-            const projects = JSON.parse(localStorage.getItem('projects')) || [];
-            const projektListe = document.querySelector('.projekt-liste');
-            projektListe.innerHTML = '';
-            projects.forEach(project => {
-                const div = document.createElement('div');
-                div.classList.add('projekt');
-                div.innerHTML = `
-                    <h3>${project.name}</h3>
-                    <p>${project.description}</p>
-                    <p>Status: ${getStatusText(project.status)}</p>
-                `;
-                if (project.image) {
-                    const img = document.createElement('img');
-                    img.src = project.image;
-                    img.alt = `${project.name} Bild`;
-                    img.style.maxWidth = '100%';
-                    img.style.margin = '10px 0';
+    <footer>
+    <p><a href="privacy.html">Datenschutzerklärung</a></p>
+    <p>Kontakt: <span id="footer-email">thunderflash@tth-projects.de</span></p>
+</footer>
+<script>
+    // Projekte abrufen und auf der Startseite anzeigen
+    function fetchProjects() {
+        const projects = JSON.parse(localStorage.getItem('projects')) || [];
+        const projektListe = document.querySelector('.projekt-liste');
+        projektListe.innerHTML = '';
+        projects.forEach(project => {
+            const div = document.createElement('div');
+            div.classList.add('projekt');
+            div.innerHTML = `
+                <h3>${project.name}</h3>
+                <p>${project.description}</p>
+                <p>Status: ${getStatusText(project.status)}</p>
+            `;
+            if (project.image) {
+                const img = document.createElement('img');
+                img.src = project.image;
+                img.alt = `${project.name} Bild`;
+                img.style.maxWidth = '100%';
+                img.style.margin = '10px 0';
 
-                    // Platzierung basierend auf der KI-Entscheidung
-                    if (project.imagePlacement === 'oben') {
-                        div.prepend(img);
-                    } else if (project.imagePlacement === 'unten') {
-                        div.appendChild(img);
-                    } else if (project.imagePlacement === 'links') {
-                        div.style.display = 'flex';
-                        div.style.alignItems = 'center';
-                        img.style.marginRight = '10px';
-                        div.prepend(img);
-                    } else if (project.imagePlacement === 'rechts') {
-                        div.style.display = 'flex';
-                        div.style.alignItems = 'center';
-                        img.style.marginLeft = '10px';
-                        div.appendChild(img);
-                    }
+                // Platzierung basierend auf der KI-Entscheidung
+                if (project.imagePlacement === 'oben') {
+                    div.prepend(img);
+                } else if (project.imagePlacement === 'unten') {
+                    div.appendChild(img);
+                } else if (project.imagePlacement === 'links') {
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
+                    img.style.marginRight = '10px';
+                    div.prepend(img);
+                } else if (project.imagePlacement === 'rechts') {
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
+                    img.style.marginLeft = '10px';
+                    div.appendChild(img);
                 }
-                projektListe.appendChild(div);
-            });
-        }
+            }
+            projektListe.appendChild(div);
+        });
+    }
 
-        // Status-Text mit Emoji basierend auf dem Status zurückgeben
-        function getStatusText(status) {
-            if (status === 'online') {
-                return 'Online ✅'; // Grüner Haken
-            } else if (status === 'offline') {
-                return 'Offline ❌'; // Rotes Kreuz
+    // Status-Text mit Emoji basierend auf dem Status zurückgeben
+    function getStatusText(status) {
+        if (status === 'online') {
+            return 'Online ✅'; // Grüner Haken
+        } else if (status === 'offline') {
+            return 'Offline ❌'; // Rotes Kreuz
+        } else {
+            return 'Unbekannt ❓'; // Gelbes Fragezeichen
+        }
+    }
+
+    // Initiale Projekte laden
+    document.addEventListener('DOMContentLoaded', fetchProjects);
+</script>
+<script>
+    document.getElementById('kontakt-formular').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const discord = document.getElementById('discord').value;
+        const message = document.getElementById('nachricht').value;
+
+        try {
+            const response = await fetch('/submit-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, discord, message })
+            });
+
+            if (response.ok) {
+                alert('Nachricht erfolgreich gesendet!');
+                document.getElementById('kontakt-formular').reset();
             } else {
-                return 'Unbekannt ❓'; // Gelbes Fragezeichen
+                alert('Fehler beim Senden der Nachricht. Bitte versuchen Sie es später erneut.');
             }
+        } catch (error) {
+            console.error('Fehler beim Senden der Nachricht:', error);
+            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
         }
+    });
 
-        // Initiale Projekte laden
-        document.addEventListener('DOMContentLoaded', fetchProjects);
-    </script>
-    <script>
-        document.getElementById('kontakt-formular').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('name').value;
-            const discord = document.getElementById('discord').value;
-            const message = document.getElementById('nachricht').value;
+    async function checkAllowedIp() {
+        try {
+            const ipResponse = await fetch('https://api.ipify.org?format=json');
+            const { ip } = await ipResponse.json();
+            const allowedIpsResponse = await fetch('/allowed_ips.json');
+            const allowedIps = await allowedIpsResponse.json();
 
-            try {
-                const response = await fetch('/submit-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, discord, message })
-                });
-
-                if (response.ok) {
-                    alert('Nachricht erfolgreich gesendet!');
-                    document.getElementById('kontakt-formular').reset();
-                } else {
-                    alert('Fehler beim Senden der Nachricht. Bitte versuchen Sie es später erneut.');
-                }
-            } catch (error) {
-                console.error('Fehler beim Senden der Nachricht:', error);
-                alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+            const isAllowed = allowedIps.some(entry => entry.ip === ip);
+            if (isAllowed) {
+                document.getElementById('admin-link').style.display = 'block';
             }
+        } catch (error) {
+            console.error('Fehler beim Überprüfen der IP-Adresse:', error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', checkAllowedIp);
+</script>
+<script>
+    // Neuigkeiten abrufen und anzeigen
+    function fetchNews() {
+        const news = JSON.parse(localStorage.getItem('news')) || [
+            { title: 'Willkommen auf unserer Website!', content: 'Wir freuen uns, euch hier zu sehen!' },
+            { title: 'Neues Update', content: 'Wir haben neue Funktionen hinzugefügt!' }
+        ];
+        const newsListe = document.getElementById('news-liste');
+        newsListe.innerHTML = '';
+        news.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${item.title}</strong><p>${item.content}</p>`;
+            newsListe.appendChild(li);
         });
+    }
 
-        async function checkAllowedIp() {
-            try {
-                const ipResponse = await fetch('https://api.ipify.org?format=json');
-                const { ip } = await ipResponse.json();
-                const allowedIpsResponse = await fetch('/allowed_ips.json');
-                const allowedIps = await allowedIpsResponse.json();
-
-                const isAllowed = allowedIps.some(entry => entry.ip === ip);
-                if (isAllowed) {
-                    document.getElementById('admin-link').style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Fehler beim Überprüfen der IP-Adresse:', error);
+    document.addEventListener('DOMContentLoaded', fetchNews);
+</script>
+<script>
+    // Benutzername festlegen, falls nicht vorhanden
+    async function setUsername() {
+        const username = localStorage.getItem('username');
+        if (!username) {
+            const newUsername = prompt('Willkommen! Bitte gib deinen Namen ein:');
+            if (newUsername) {
+                localStorage.setItem('username', newUsername);
+                alert(`Hallo ${newUsername}, dein Name wurde gespeichert!`);
+            } else {
+                alert('Du musst einen Namen eingeben, um Punkte zu sammeln.');
             }
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', checkAllowedIp);
-    </script>
-    <script>
-        // Neuigkeiten abrufen und anzeigen
-        function fetchNews() {
-            const news = JSON.parse(localStorage.getItem('news')) || [
-                { title: 'Willkommen auf unserer Website!', content: 'Wir freuen uns, euch hier zu sehen!' },
-                { title: 'Neues Update', content: 'Wir haben neue Funktionen hinzugefügt!' }
-            ];
-            const newsListe = document.getElementById('news-liste');
-            newsListe.innerHTML = '';
-            news.forEach(item => {
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>${item.title}</strong><p>${item.content}</p>`;
-                newsListe.appendChild(li);
-            });
-        }
+    document.addEventListener('DOMContentLoaded', async () => {
+        await setUsername();
+    });
+</script>
+<script>
+    // Entferne die dynamische Menülogik
+</script>
+<script>
+    // "Über Uns"-Text abrufen und anzeigen
+    function displayAboutText() {
+        const aboutText = localStorage.getItem('aboutText') || 'Wir sind ein Team von leidenschaftlichen Gamern und Entwicklern, die innovative Gaming-Projekte erstellen.';
+        document.getElementById('about-text-display').textContent = aboutText;
+    }
 
-        document.addEventListener('DOMContentLoaded', fetchNews);
-    </script>
-    <script>
-        // Benutzername festlegen, falls nicht vorhanden
-        async function setUsername() {
-            const username = localStorage.getItem('username');
-            if (!username) {
-                const newUsername = prompt('Willkommen! Bitte gib deinen Namen ein:');
-                if (newUsername) {
-                    localStorage.setItem('username', newUsername);
-                    alert(`Hallo ${newUsername}, dein Name wurde gespeichert!`);
-                } else {
-                    alert('Du musst einen Namen eingeben, um Punkte zu sammeln.');
-                }
-            }
-        }
+    document.addEventListener('DOMContentLoaded', displayAboutText);
+</script>
+<script>
+    // Dynamische E-Mail im Footer anzeigen
+    function updateFooterEmail() {
+        const email = localStorage.getItem('adminEmail') || 'thunderflash@tth-projects.de';
+        document.getElementById('footer-email').textContent = email;
+    }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await setUsername();
-        });
-    </script>
-    <script>
-        // Entferne die dynamische Menülogik
-    </script>
-    <script>
-        // "Über Uns"-Text abrufen und anzeigen
-        function displayAboutText() {
-            const aboutText = localStorage.getItem('aboutText') || 'Wir sind ein Team von leidenschaftlichen Gamern und Entwicklern, die innovative Gaming-Projekte erstellen.';
-            document.getElementById('about-text-display').textContent = aboutText;
-        }
-
-        document.addEventListener('DOMContentLoaded', displayAboutText);
-    </script>
+    document.addEventListener('DOMContentLoaded', updateFooterEmail);
+</script>
 </body>
 </html>

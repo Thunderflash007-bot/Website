@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datenschutzerklärung</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Datenschutzerklärung</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Startseite</a></li>
+                <li><a href="privacy.html">Datenschutz</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <h2>Welche Daten speichern wir?</h2>
+            <p>Wir speichern nur die Daten, die Sie uns aktiv übermitteln, sowie Ihre öffentliche IP-Adresse. Diese wird benötigt, um Berechtigungen zuzuweisen und die Teilnahme an Umfragen zu ermöglichen.</p>
+        </section>
+        <section>
+            <h2>Wie und wo speichern wir Ihre Daten?</h2>
+            <p>Ihre Daten werden sicher auf unserem Server gespeichert. Wir verwenden keine Cloud-Dienste oder externe Speicheranbieter.</p>
+        </section>
+        <section>
+            <h2>Wer hat Zugriff auf Ihre Daten?</h2>
+            <p>Nur autorisierte Mitglieder unseres Teams haben Zugriff auf Ihre Daten. Diese werden ausschließlich für die angegebenen Zwecke verwendet.</p>
+        </section>
+        <section>
+            <h2>Weitergabe an Dritte</h2>
+            <p>Wir geben Ihre Daten niemals an Dritte weiter, es sei denn, wir sind gesetzlich dazu verpflichtet.</p>
+        </section>
+        <section>
+            <h2>Ihre Rechte</h2>
+            <p>Sie haben das Recht, jederzeit Auskunft über die von uns gespeicherten Daten zu erhalten, diese zu korrigieren oder deren Löschung zu verlangen. Kontaktieren Sie uns hierfür über die im Impressum angegebene E-Mail-Adresse.</p>
+        </section>
+    </main>
+    <footer>
+        <p>Kontakt: <span id="footer-email">thunderflash@tth-projects.de</span></p>
+    </footer>
+<script>
+    // Dynamische E-Mail im Footer anzeigen
+    function updateFooterEmail() {
+        const email = localStorage.getItem('adminEmail') || 'thunderflash@tth-projects.de';
+        document.getElementById('footer-email').textContent = email;
+    }
+
+    document.addEventListener('DOMContentLoaded', updateFooterEmail);
+</script>
+</body>
+</html>
