@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nachrichten</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Nachrichten</h1>
+        <nav>
+            <ul>
+                <li><a href="admin.html">Zurück zum Admin Bereich</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <h2>Alle Nachrichten</h2>
+            <ul id="nachrichten-liste">
+                <!-- Nachrichten werden hier dynamisch eingefügt -->
+            </ul>
+        </section>
+    </main>
+    <script>
+        async function fetchMessages() {
+            const response = await fetch('/messages');
+            const messages = await response.json();
+            const nachrichtenListe = document.getElementById('nachrichten-liste');
+            nachrichtenListe.innerHTML = '';
+            messages.forEach((msg) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <strong>${msg.name} (${msg.discord})</strong>: ${msg.message}
+                `;
+                nachrichtenListe.appendChild(li);
+            });
+        }
+
+        // Nachrichten beim Laden der Seite abrufen
+        document.addEventListener('DOMContentLoaded', fetchMessages);
+    </script>
+</body>
+</html>

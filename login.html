@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anmeldung</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Anmeldung</h1>
+    </header>
+    <main>
+        <form id="login-form">
+            <label for="username">Benutzername:</label>
+            <input type="text" id="username" required>
+            <label for="password">Passwort:</label>
+            <input type="password" id="password" required>
+            <button type="submit">Anmelden</button>
+        </form>
+    </main>
+    <!-- Entferne den Footer -->
+    <!-- <footer>
+        <p>&copy; 2023 Gaming Projekte. Alle Rechte vorbehalten.</p>
+    </footer> -->
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    alert('Anmeldung erfolgreich!');
+                    window.location.href = 'index.html';
+                } else {
+                    alert(await response.text());
+                }
+            } catch (error) {
+                console.error('Fehler bei der Anmeldung:', error);
+                alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+            }
+        });
+    </script>
+</body>
+</html>

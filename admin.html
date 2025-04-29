@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Bereich</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+    <h1>Admin Bereich</h1>
+    <nav>
+        <ul>
+            <li><a href="index.html">Startseite</a></li>
+            <li><a href="admin.html">Admin</a></li>
+            <li><a href="admin-messages.html">Nachrichten</a></li>
+        </ul>
+    </nav>
+</header>
+<main>
+    <section>
+        <h2>Projektverwaltung</h2>
+        <button id="projekt-erstellen-btn">+ Projekt erstellen</button>
+        <ul id="projekt-liste"></ul>
+    </section>
+    <section>
+        <h2>IP-Verwaltung</h2>
+        <form id="ip-form">
+            <label for="ip-input">IP-Adresse:</label>
+            <input type="text" id="ip-input" placeholder="z. B. 192.168.1.1" required>
+            <label>
+                <input type="checkbox" id="requires-password"> Passwort erforderlich
+            </label>
+            <input type="text" id="password-input" placeholder="Passwort (optional)" disabled>
+            <button type="submit">Hinzufügen</button>
+        </form>
+        <ul id="ip-liste">
+            <!-- Erlaubte IPs werden hier dauerhaft angezeigt -->
+        </ul>
+    </section>
+    <section>
+        <h2>Umfragenverwaltung</h2>
+        <form id="poll-form">
+            <label for="poll-question">Frage:</label>
+            <input type="text" id="poll-question" placeholder="Frage eingeben" required>
+            <div id="poll-options-container">
+                <label>Antworten:</label>
+                <div class="poll-option">
+                    <input type="text" name="poll-option" placeholder="Antwort eingeben" required>
+                </div>
+            </div>
+            <button type="button" id="add-option-btn">Weitere Antwort hinzufügen</button>
+            <label>
+                <input type="checkbox" id="allow-custom-answer"> Individuelle Antwort erlauben
+            </label>
+            <label>
+                <input type="checkbox" id="allow-multiple"> Mehrfachauswahl erlauben
+            </label>
+            <button type="submit">Umfrage erstellen</button>
+        </form>
+        <ul id="poll-liste">
+            <!-- Umfragen werden hier angezeigt -->
+        </ul>
+        <div id="poll-results">
+            <h3>Abstimmungsergebnisse</h3>
+            <ul id="results-liste">
+                <!-- Ergebnisse werden hier angezeigt -->
+            </ul>
+        </div>
+    </section>
+    <section>
+        <h2>Neuigkeitenverwaltung</h2>
+        <form id="news-form">
+            <label for="news-title">Titel:</label>
+            <input type="text" id="news-title" placeholder="Titel eingeben" required>
+            <label for="news-content">Inhalt:</label>
+            <textarea id="news-content" placeholder="Inhalt eingeben" required></textarea>
+            <button type="submit">Neuigkeit hinzufügen</button>
+        </form>
+        <ul id="news-liste">
+            <!-- Neuigkeiten werden hier angezeigt -->
+        </ul>
+    </section>
+    <section>
+        <h2>"Über Uns" bearbeiten</h2>
+        <form id="about-form">
+            <label for="about-text">Text:</label>
+            <textarea id="about-text" placeholder="Text für 'Über Uns' eingeben" required></textarea>
+            <button type="submit">Speichern</button>
+        </form>
+    </section>
+</main>
+<script>
+    // Projekte abrufen und anzeigen
+    function fetchProjects() {
+        const projects = JSON.parse(localStorage.getItem('projects')) || [];
+        const projektListe = document.getElementById('projekt-liste');
+        projektListe.innerHTML = '';
+        projects.forEach(project => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <strong>${project.name}</strong>: ${project.description}
+                <p>Status: ${getStatusText(project.status)}</p>
+                <p>Server-IP: ${project.serverIp || 'Nicht angegeben'}</p>
+                <button onclick="editProject('${project.id}')">Bearbeiten</button>
+                <button onclick="deleteProject('${project.id}')">Löschen</button>
+            `;
+            projektListe.appendChild(li);
+        });
+    }
+
+    // Status-Text mit Emoji basierend auf dem Status zurückgeben
+    function getStatusText(status) {
+        if (status === 'online') {
+            return 'Online ✅';
+        } else if (status === 'offline') {
+            return 'Offline ❌';
+        } else {
+            return 'Unbekannt ❓';
+        }
+    }
+
+    // Projekt speichern (neu oder aktualisieren)
+    function saveProject(project) {
+        const projects = JSON.parse(localStorage.getItem('projects')) || [];
+        const existingIndex = projects.findIndex(p => p.id === project.id);
+
+        if (existingIndex !== -1) {
+            projects[existingIndex] = project;
+        } else {
+            projects.push(project);
+        }
+
+        localStorage.setItem('projects', JSON.stringify(projects));
+        alert('Projekt erfolgreich gespeichert!');
+        fetchProjects();
+    }
+
+    // Projekt löschen
+    function deleteProject(id) {
+        const projects = JSON.parse(localStorage.getItem('projects')) || [];
+        const updatedProjects = projects.filter(p => p.id !== id);
+        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        fetchProjects();
+    }
+
+    // Projekt bearbeiten
+    function editProject(id) {
+        const projects = JSON.parse(localStorage.getItem('projects')) || [];
+        const project = projects.find(p => p.id === id);
+
+        if (project) {
+            document.getElementById('projekt-id').value = project.id;
+            document.getElementById('projekt-name').value = project.name;
+            document.getElementById('projekt-beschreibung').value = project.description;
+            document.getElementById('projekt-status').value = project.status || 'unknown';
+            document.getElementById('server-ip').value = project.serverIp || '';
+            openPopup();
+        }
+    }
+
+    // IPs abrufen und dauerhaft anzeigen
+    async function fetchIps() {
+        const response = await fetch('/allowed_ips.json');
+        const ips = await response.json();
+        const ipListe = document.getElementById('ip-liste');
+        ipListe.innerHTML = '';
+        ips.forEach(({ ip, requiresPassword, password }) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <strong>${ip}</strong> - Passwort erforderlich: ${requiresPassword ? 'Ja' : 'Nein'}
+                ${requiresPassword ? `(Passwort: ${password})` : ''}
+                <button onclick="removeIp('${ip}')">Entfernen</button>
+            `;
+            ipListe.appendChild(li);
+        });
+    }
+
+    // IP hinzufügen oder aktualisieren
+    document.getElementById('ip-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const ip = document.getElementById('ip-input').value;
+        const requiresPassword = document.getElementById('requires-password').checked;
+        const password = requiresPassword ? document.getElementById('password-input').value : null;
+
+        const response = await fetch('/add-ip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip, requiresPassword, password })
+        });
+
+        if (response.ok) {
+            alert('IP-Adresse hinzugefügt oder aktualisiert');
+            fetchIps();
+        } else {
+            alert(await response.text());
+        }
+    });
+
+    // IP entfernen
+    async function removeIp(ip) {
+        const response = await fetch('/remove-ip', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip })
+        });
+
+        if (response.ok) {
+            alert('IP-Adresse entfernt');
+            fetchIps();
+        } else {
+            alert(await response.text());
+        }
+    }
+
+    // Passwortfeld aktivieren/deaktivieren
+    document.getElementById('requires-password').addEventListener('change', (e) => {
+        document.getElementById('password-input').disabled = !e.target.checked;
+    });
+
+    // Weitere Antwortfelder hinzufügen
+    document.getElementById('add-option-btn').addEventListener('click', () => {
+        const container = document.getElementById('poll-options-container');
+        const optionDiv = document.createElement('div');
+        optionDiv.classList.add('poll-option');
+        optionDiv.innerHTML = `
+            <input type="text" name="poll-option" placeholder="Antwort eingeben" required>
+        `;
+        container.appendChild(optionDiv);
+    });
+
+    // Umfrage speichern
+    document.getElementById('poll-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const question = document.getElementById('poll-question').value;
+        const options = Array.from(document.querySelectorAll('input[name="poll-option"]')).map(input => input.value.trim()).filter(opt => opt);
+        const allowCustomAnswer = document.getElementById('allow-custom-answer').checked;
+        const allowMultiple = document.getElementById('allow-multiple').checked;
+
+        if (options.length === 0) {
+            alert('Bitte geben Sie mindestens eine Antwort ein.');
+            return;
+        }
+
+        const polls = JSON.parse(localStorage.getItem('polls')) || [];
+        polls.push({ question, options, allowCustomAnswer, allowMultiple, votes: {} });
+        localStorage.setItem('polls', JSON.stringify(polls));
+        alert('Umfrage erstellt!');
+        fetchPolls();
+        document.getElementById('poll-form').reset();
+        document.getElementById('poll-options-container').innerHTML = `
+            <label>Antworten:</label>
+            <div class="poll-option">
+                <input type="text" name="poll-option" placeholder="Antwort eingeben" required>
+            </div>
+        `;
+    });
+
+    // Ergebnisse anzeigen
+    function showResults(index) {
+        const polls = JSON.parse(localStorage.getItem('polls')) || [];
+        const poll = polls[index];
+        const resultsListe = document.getElementById('results-liste');
+        resultsListe.innerHTML = '';
+
+        if (!poll || !poll.votes) {
+            alert('Keine Ergebnisse verfügbar.');
+            return;
+        }
+
+        const voteCounts = {};
+        Object.values(poll.votes).flat().forEach(option => {
+            voteCounts[option] = (voteCounts[option] || 0) + 1;
+        });
+
+        for (const [option, count] of Object.entries(voteCounts)) {
+            const li = document.createElement('li');
+            li.textContent = `${option}: ${count} Stimme(n)`;
+            resultsListe.appendChild(li);
+        }
+    }
+
+    // Umfragen abrufen und anzeigen
+    function fetchPolls() {
+        const polls = JSON.parse(localStorage.getItem('polls')) || [];
+        const pollListe = document.getElementById('poll-liste');
+        pollListe.innerHTML = '';
+        polls.forEach((poll, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <strong>${poll.question}</strong>
+                <p>Antworten: ${poll.options.join(', ')}</p>
+                <p>Individuelle Antwort: ${poll.allowCustomAnswer ? 'Ja' : 'Nein'}</p>
+                <p>Mehrfachauswahl: ${poll.allowMultiple ? 'Ja' : 'Nein'}</p>
+                <button onclick="deletePoll(${index})">Löschen</button>
+                <button onclick="showResults(${index})">Ergebnisse anzeigen</button>
+            `;
+            pollListe.appendChild(li);
+        });
+    }
+
+    // Umfrage löschen
+    function deletePoll(index) {
+        const polls = JSON.parse(localStorage.getItem('polls')) || [];
+        polls.splice(index, 1);
+        localStorage.setItem('polls', JSON.stringify(polls));
+        fetchPolls();
+    }
+
+    // Neuigkeiten abrufen und anzeigen
+    function fetchNews() {
+        const news = JSON.parse(localStorage.getItem('news')) || [];
+        const newsListe = document.getElementById('news-liste');
+        newsListe.innerHTML = '';
+        news.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <strong>${item.title}</strong>
+                <p>${item.content}</p>
+                <button onclick="deleteNews(${index})">Löschen</button>
+            `;
+            newsListe.appendChild(li);
+        });
+    }
+
+    // Neuigkeit hinzufügen
+    document.getElementById('news-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('news-title').value;
+        const content = document.getElementById('news-content').value;
+
+        const news = JSON.parse(localStorage.getItem('news')) || [];
+        news.push({ title, content });
+        localStorage.setItem('news', JSON.stringify(news));
+        alert('Neuigkeit hinzugefügt!');
+        fetchNews();
+        document.getElementById('news-form').reset();
+    });
+
+    // Neuigkeit löschen
+    function deleteNews(index) {
+        const news = JSON.parse(localStorage.getItem('news')) || [];
+        news.splice(index, 1);
+        localStorage.setItem('news', JSON.stringify(news));
+        fetchNews();
+    }
+
+    // "Über Uns"-Text abrufen und anzeigen
+    function fetchAboutText() {
+        const aboutText = localStorage.getItem('aboutText') || 'Wir sind ein Team von leidenschaftlichen Gamern und Entwicklern, die innovative Gaming-Projekte erstellen.';
+        document.getElementById('about-text').value = aboutText;
+    }
+
+    // "Über Uns"-Text speichern
+    document.getElementById('about-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const aboutText = document.getElementById('about-text').value;
+        localStorage.setItem('aboutText', aboutText);
+        alert('Text für "Über Uns" wurde erfolgreich gespeichert!');
+    });
+
+    // Initiale Daten laden
+    fetchProjects();
+    fetchIps();
+    fetchPolls();
+    fetchNews();
+    fetchAboutText();
+</script>
+</body>
+</html>

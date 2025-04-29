@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Umfragen</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Umfragen</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Startseite</a></li>
+                <li><a href="admin.html">Admin</a></li>
+                <li><a href="polls.html">Umfragen</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="polls-section">
+            <!-- Umfragen werden hier dynamisch eingefügt -->
+        </section>
+    </main>
+    <script>
+        async function fetchIp() {
+            const response = await fetch('https://api.ipify.org?format=json');
+            const { ip } = await response.json();
+            return ip;
+        }
+
+        async function loadPolls() {
+            const polls = JSON.parse(localStorage.getItem('polls')) || [];
+            const pollsSection = document.getElementById('polls-section');
+            pollsSection.innerHTML = '';
+
+            const userIp = await fetchIp();
+
+            polls.forEach((poll, pollIndex) => {
+                const div = document.createElement('div');
+                div.classList.add('poll');
+                div.innerHTML = `<h3>${poll.question}</h3>`;
+
+                poll.votes = poll.votes || {}; // Initialisiere votes, falls undefined
+
+                if (poll.votes[userIp]) {
+                    div.innerHTML += `<p>Danke für Ihre Teilnahme!</p>`;
+                } else {
+                    const form = document.createElement('form');
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const selectedOptions = Array.from(form.querySelectorAll('input[name="option"]:checked')).map(input => input.value);
+                        if (poll.allowCustomAnswer) {
+                            const customAnswer = form.querySelector('input[name="custom-answer"]').value;
+                            if (customAnswer) selectedOptions.push(customAnswer);
+                        }
+                        poll.votes[userIp] = selectedOptions;
+                        localStorage.setItem('polls', JSON.stringify(polls));
+                        alert('Danke für Ihre Teilnahme!');
+                        loadPolls();
+                    });
+
+                    poll.options.forEach((option, index) => {
+                        const wrapper = document.createElement('div');
+                        wrapper.style.display = 'flex';
+                        wrapper.style.alignItems = 'center';
+                        wrapper.style.marginBottom = '5px';
+
+                        const input = document.createElement('input');
+                        input.type = poll.allowMultiple ? 'checkbox' : 'radio';
+                        input.name = 'option';
+                        input.value = option;
+                        input.id = `option-${pollIndex}-${index}`;
+                        input.style.marginRight = '10px';
+
+                        const label = document.createElement('label');
+                        label.textContent = option;
+                        label.setAttribute('for', `option-${pollIndex}-${index}`);
+                        label.style.margin = '0';
+
+                        wrapper.appendChild(input);
+                        wrapper.appendChild(label);
+                        form.appendChild(wrapper);
+                    });
+
+                    if (poll.allowCustomAnswer) {
+                        const customWrapper = document.createElement('div');
+                        customWrapper.style.marginTop = '10px';
+
+                        const customInput = document.createElement('input');
+                        customInput.type = 'text';
+                        customInput.name = 'custom-answer';
+                        customInput.placeholder = 'Eigene Antwort';
+
+                        customWrapper.appendChild(customInput);
+                        form.appendChild(customWrapper);
+                    }
+
+                    const submitButton = document.createElement('button');
+                    submitButton.type = 'submit';
+                    submitButton.textContent = 'Abstimmen';
+                    submitButton.style.marginTop = '10px';
+                    form.appendChild(submitButton);
+
+                    div.appendChild(form);
+                }
+
+                pollsSection.appendChild(div);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPolls);
+    </script>
+</body>
+</html>

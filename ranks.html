@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ränge kaufen</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Ränge kaufen</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Startseite</a></li>
+                <li><a href="admin.html">Admin</a></li>
+                <li><a href="ranks.html">Ränge</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <h2>Verfügbare Ränge</h2>
+            <ul id="rank-liste">
+                <!-- Ränge werden hier dynamisch eingefügt -->
+            </ul>
+        </section>
+    </main>
+    <script>
+        // Verfügbare Ränge
+        const ranks = [
+            { name: 'VIP', price: '5€' },
+            { name: 'VIP+', price: '10€' },
+            { name: 'MVP', price: '15€' },
+            { name: 'MVP+', price: '20€' },
+            { name: 'MVP++', price: '25€' }
+        ];
+
+        // Ränge anzeigen
+        function displayRanks() {
+            const rankListe = document.getElementById('rank-liste');
+            ranks.forEach(rank => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <strong>${rank.name}</strong>: ${rank.price}
+                    <button onclick="buyRank('${rank.name}')">Kaufen</button>
+                `;
+                rankListe.appendChild(li);
+            });
+        }
+
+        // Rang kaufen
+        function buyRank(rankName) {
+            alert(`Sie haben den Rang "${rankName}" erfolgreich gekauft!`);
+        }
+
+        // Initiale Anzeige der Ränge
+        displayRanks();
+    </script>
+</body>
+</html>
