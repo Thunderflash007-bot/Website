@@ -6,7 +6,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
-const DEFAULT_PORT = 3001;
+const DEFAULT_PORT = 80;
 
 app.use(cors());
 app.use(express.json());
