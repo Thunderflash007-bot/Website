@@ -77,6 +77,9 @@
 
                 selectedOptions.forEach(option => {
                     poll.votes[option] = (poll.votes[option] || 0) + 1;
+                    if (!poll.options.includes(option)) {
+                        poll.options.push(option); // Füge individuelle Antworten zu den Optionen hinzu
+                    }
                 });
 
                 // Speichere die aktualisierten Umfragen auf dem Server
@@ -87,7 +90,9 @@
                 }).then(() => {
                     alert('Danke für Ihre Teilnahme!');
                     localStorage.setItem(`voted-${pollIndex}`, true); // Markiere als abgestimmt
+                    localStorage.setItem(`chartData-${pollIndex}`, JSON.stringify(poll)); // Speichere Diagrammdaten
                     renderChart(poll, chartCanvas, chartSection);
+                    renderPolls(polls); // Aktualisiere die Umfrage mit neuen Optionen
                 }).catch(error => {
                     console.error('Fehler beim Speichern der Abstimmung:', error);
                 });
@@ -144,6 +149,14 @@
 
             div.appendChild(form);
             pollsSection.appendChild(div);
+
+            // Zeige Diagramm, falls bereits abgestimmt
+            if (localStorage.getItem(`voted-${pollIndex}`)) {
+                const savedPoll = JSON.parse(localStorage.getItem(`chartData-${pollIndex}`));
+                if (savedPoll) {
+                    renderChart(savedPoll, chartCanvas, chartSection);
+                }
+            }
         });
     }
 
@@ -153,7 +166,11 @@
         const labels = Object.keys(voteCounts);
         const data = Object.values(voteCounts);
 
-        new Chart(chartCanvas, {
+        if (chartCanvas.chartInstance) {
+            chartCanvas.chartInstance.destroy(); // Entferne vorheriges Diagramm
+        }
+
+        chartCanvas.chartInstance = new Chart(chartCanvas, {
             type: 'pie',
             data: {
                 labels: labels,
