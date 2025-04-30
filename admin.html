@@ -407,26 +407,6 @@
 
     document.addEventListener('DOMContentLoaded', displayCodes);
 
-    // Datenschutzerklärung laden und Felder vorausfüllen
-    async function loadPrivacySections() {
-        try {
-            const response = await fetch('/privacy.json');
-            if (!response.ok) {
-                throw new Error('Fehler beim Abrufen der Datenschutzerklärung');
-            }
-            const privacyData = await response.json();
-            document.getElementById('privacy-intro').value = privacyData.intro || '';
-            document.getElementById('privacy-data').value = privacyData.data || '';
-            document.getElementById('privacy-storage').value = privacyData.storage || '';
-            document.getElementById('privacy-access').value = privacyData.access || '';
-            document.getElementById('privacy-sharing').value = privacyData.sharing || '';
-            document.getElementById('privacy-rights').value = privacyData.rights || '';
-        } catch (error) {
-            console.error('Fehler beim Laden der Datenschutzerklärung:', error);
-            alert('Fehler beim Laden der Datenschutzerklärung.');
-        }
-    }
-
     // Datenschutzerklärung speichern
     document.getElementById('privacy-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -458,238 +438,27 @@
         }
     });
 
-    // Umfrage beenden
-    async function endPoll(index) {
+    // Datenschutzerklärung laden und Felder vorausfüllen
+    async function loadPrivacySections() {
         try {
-            const response = await fetch('/polls.json');
+            const response = await fetch('/privacy.json');
             if (!response.ok) {
-                throw new Error('Fehler beim Abrufen der Umfragen');
+                throw new Error('Fehler beim Abrufen der Datenschutzerklärung');
             }
-            let polls = await response.json();
-
-            // Überprüfe, ob polls ein Array ist
-            if (!Array.isArray(polls)) {
-                throw new Error('Ungültiges Umfrageformat: polls ist kein Array');
-            }
-
-            // Entferne die Umfrage aus der Liste
-            polls.splice(index, 1);
-
-            // Speichere die aktualisierte Liste der Umfragen
-            const saveResponse = await fetch('/polls.json', {
-                method: 'PUT', // Verwende PUT, um die Datei zu aktualisieren
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(polls, null, 2),
-            });
-
-            if (saveResponse.ok) {
-                alert('Umfrage erfolgreich beendet!');
-                fetchPolls(); // Aktualisiere die Liste der Umfragen
-            } else {
-                throw new Error('Fehler beim Speichern der aktualisierten Umfragen');
-            }
+            const privacyData = await response.json();
+            document.getElementById('privacy-intro').value = privacyData.intro || '';
+            document.getElementById('privacy-data').value = privacyData.data || '';
+            document.getElementById('privacy-storage').value = privacyData.storage || '';
+            document.getElementById('privacy-access').value = privacyData.access || '';
+            document.getElementById('privacy-sharing').value = privacyData.sharing || '';
+            document.getElementById('privacy-rights').value = privacyData.rights || '';
         } catch (error) {
-            console.error('Fehler beim Beenden der Umfrage:', error);
-            alert('Ein Fehler ist aufgetreten: ' + error.message);
+            console.error('Fehler beim Laden der Datenschutzerklärung:', error);
+            alert('Fehler beim Laden der Datenschutzerklärung.');
         }
     }
 
-    // Umfragen abrufen und anzeigen
-    async function fetchPolls() {
-        try {
-            const response = await fetch('/polls.json');
-            if (!response.ok) {
-                throw new Error('Fehler beim Abrufen der Umfragen');
-            }
-            const polls = await response.json();
-
-            const pollListe = document.getElementById('poll-liste');
-            pollListe.innerHTML = '';
-            polls.forEach((poll, index) => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <strong>${poll.question}</strong>
-                    <button onclick="endPoll(${index})">Beenden</button>
-                `;
-                pollListe.appendChild(li);
-            });
-        } catch (error) {
-            console.error('Fehler beim Abrufen der Umfragen:', error);
-        }
-    }
-
-    // Initialisiere die Anzeige der Umfragen beim Laden der Seite
-    document.addEventListener('DOMContentLoaded', fetchPolls);
-
-    // Umfrage erstellen
-    document.getElementById('poll-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const question = document.getElementById('poll-question').value;
-        const options = Array.from(document.querySelectorAll('input[name="poll-option"]')).map(input => input.value);
-        const allowCustomAnswer = document.getElementById('allow-custom-answer').checked;
-        const allowMultiple = document.getElementById('allow-multiple').checked;
-
-        const newPoll = { question, options, allowCustomAnswer, allowMultiple, votes: {} };
-
-        try {
-            const response = await fetch('/polls.json', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newPoll),
-            });
-
-            if (response.ok) {
-                alert('Umfrage erfolgreich erstellt!');
-                document.getElementById('poll-form').reset();
-
-                // Antwortfelder auf ein einziges Feld zurücksetzen
-                const container = document.getElementById('poll-options-container');
-                container.innerHTML = `
-                    <label>Antworten:</label>
-                    <div class="poll-option">
-                        <input type="text" name="poll-option" placeholder="Antwort eingeben" required>
-                    </div>
-                `;
-
-                fetchPolls();
-            } else {
-                alert('Fehler beim Erstellen der Umfrage.');
-            }
-        } catch (error) {
-            console.error('Fehler beim Erstellen der Umfrage:', error);
-        }
-    });
-
-    // Weitere Antwort hinzufügen
-    document.getElementById('add-option-btn').addEventListener('click', () => {
-        const container = document.getElementById('poll-options-container');
-        const div = document.createElement('div');
-        div.classList.add('poll-option');
-        div.innerHTML = `<input type="text" name="poll-option" placeholder="Antwort eingeben" required>`;
-        container.appendChild(div);
-    });
-
-    // Entferne die Passwortabfrage bei jeder Aktion
-    document.addEventListener('DOMContentLoaded', () => {
-        if (!sessionStorage.getItem('adminAuthenticated')) {
-            showPasswordPopup();
-        }
-    });
-
-    function showPasswordPopup() {
-        const popup = document.getElementById('password-popup');
-        popup.classList.remove('hidden');
-    }
-
-    function verifyAdminPassword() {
-        const adminPassword = '2q-tth'; // Admin-Bereich Passwort
-        const userPassword = document.getElementById('admin-password-input').value;
-
-        if (userPassword === adminPassword) {
-            sessionStorage.setItem('adminAuthenticated', 'true'); // Authentifizierung speichern
-            const popup = document.getElementById('password-popup');
-            popup.classList.add('hidden');
-        } else {
-            alert('Falsches Passwort! Zugriff verweigert.');
-            window.location.href = 'index.html';
-        }
-    }
-
-    // Synchronisierungsdaten senden
-    function sendSyncData(type) {
-        fetch('/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type }),
-        }).then(() => {
-            console.log(`Synchronisierung für ${type} ausgelöst.`);
-        }).catch((error) => {
-            console.error('Fehler bei der Synchronisierung:', error);
-        });
-    }
-
-    // Beispiel: Synchronisierung nach dem Hinzufügen eines Projekts
-    document.getElementById('project-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('project-name').value;
-        const description = document.getElementById('project-description').value;
-        const status = document.getElementById('project-status').value;
-
-        const project = { id: editingProjectId || Date.now().toString(), name, description, status };
-
-        try {
-            const response = await fetch('/projects.json', {
-                method: editingProjectId ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(project),
-            });
-
-            if (response.ok) {
-                alert(editingProjectId ? 'Projekt erfolgreich bearbeitet!' : 'Projekt erfolgreich erstellt!');
-                closeProjectForm();
-                fetchProjects();
-                sendSyncData('updateProjects'); // Synchronisierung auslösen
-            } else {
-                alert('Fehler beim Speichern des Projekts.');
-            }
-        } catch (error) {
-            console.error('Fehler beim Speichern des Projekts:', error);
-        }
-    });
-
-    // Beispiel: Synchronisierung nach dem Hinzufügen einer Neuigkeit
-    document.getElementById('news-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const title = document.getElementById('news-title').value;
-        const content = document.getElementById('news-content').value;
-
-        const newsItem = { id: Date.now().toString(), title, content };
-
-        try {
-            const response = await fetch('/news.json', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newsItem),
-            });
-
-            if (response.ok) {
-                alert('Neuigkeit erfolgreich hinzugefügt!');
-                document.getElementById('news-form').reset();
-                fetchNews();
-                sendSyncData('updateNews'); // Synchronisierung auslösen
-            } else {
-                const errorText = await response.text();
-                alert(`Fehler beim Hinzufügen der Neuigkeit: ${errorText}`);
-            }
-        } catch (error) {
-            console.error('Fehler beim Hinzufügen der Neuigkeit:', error);
-            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
-        }
-    });
-
-    // Funktion zum Abrufen und Anzeigen von Neuigkeiten
-    async function fetchNews() {
-        try {
-            const response = await fetch('/news.json');
-            if (!response.ok) {
-                throw new Error('Fehler beim Abrufen der Neuigkeiten');
-            }
-            const newsListe = document.getElementById('news-liste');
-            newsListe.innerHTML = '';
-            const newsItems = await response.json();
-            newsItems.forEach(item => {
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>${item.title}</strong>: ${item.content}`;
-                newsListe.appendChild(li);
-            });
-        } catch (error) {
-            console.error('Fehler beim Abrufen der Neuigkeiten:', error);
-        }
-    }
-
-    // Lade die Neuigkeiten beim Start
-    document.addEventListener('DOMContentLoaded', fetchNews);
-
+    document.addEventListener('DOMContentLoaded', loadPrivacySections);
 </script>
 </body>
 </html>
