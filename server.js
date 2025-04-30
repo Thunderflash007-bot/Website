@@ -166,15 +166,11 @@ app.delete('/:file', (req, res) => {
     });
 });
 
-// Synchronisierungs-Endpunkt
+// Synchronisierungs-Endpunkt für alle Seiten
 app.post('/sync', (req, res) => {
     try {
-        // Beispiel: Daten aus einer Datei lesen und an alle Geräte senden
-        const projects = fs.readFileSync(getFilePath('projects.json'), 'utf8');
-        const privacy = fs.readFileSync(getFilePath('privacy.json'), 'utf8');
-        const data = { projects: JSON.parse(projects), privacy: JSON.parse(privacy) };
-
-        // Hier könnte eine WebSocket- oder Push-Benachrichtigung implementiert werden
+        const data = req.body; // Daten, die synchronisiert werden sollen
+        io.emit('syncData', data); // Sende die Daten an alle verbundenen Clients
         console.log('Synchronisierung ausgelöst:', data);
         res.status(200).send('Synchronisierung erfolgreich.');
     } catch (error) {

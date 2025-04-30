@@ -33,3 +33,16 @@ function showAdminLink() {
 }
 
 document.addEventListener('DOMContentLoaded', showAdminLink);
+
+const socket = io();
+
+// Synchronisierungsdaten empfangen und anwenden
+socket.on('syncData', (data) => {
+    console.log('Synchronisierte Daten empfangen:', data);
+    // Hier kannst du die empfangenen Daten anwenden, z. B. Seiteninhalte aktualisieren
+    if (data.type === 'updateProjects') {
+        fetchProjects(); // Aktualisiere die Projekte
+    } else if (data.type === 'updateNews') {
+        fetchNews(); // Aktualisiere die Neuigkeiten
+    }
+});

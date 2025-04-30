@@ -563,8 +563,11 @@
         container.appendChild(div);
     });
 
+    // Entferne die Passwortabfrage bei jeder Aktion
     document.addEventListener('DOMContentLoaded', () => {
-        showPasswordPopup();
+        if (!sessionStorage.getItem('adminAuthenticated')) {
+            showPasswordPopup();
+        }
     });
 
     function showPasswordPopup() {
@@ -577,6 +580,7 @@
         const userPassword = document.getElementById('admin-password-input').value;
 
         if (userPassword === adminPassword) {
+            sessionStorage.setItem('adminAuthenticated', 'true'); // Authentifizierung speichern
             const popup = document.getElementById('password-popup');
             popup.classList.add('hidden');
         } else {
@@ -584,6 +588,100 @@
             window.location.href = 'index.html';
         }
     }
+
+    // Synchronisierungsdaten senden
+    function sendSyncData(type) {
+        fetch('/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type }),
+        }).then(() => {
+            console.log(`Synchronisierung für ${type} ausgelöst.`);
+        }).catch((error) => {
+            console.error('Fehler bei der Synchronisierung:', error);
+        });
+    }
+
+    // Beispiel: Synchronisierung nach dem Hinzufügen eines Projekts
+    document.getElementById('project-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('project-name').value;
+        const description = document.getElementById('project-description').value;
+        const status = document.getElementById('project-status').value;
+
+        const project = { id: editingProjectId || Date.now().toString(), name, description, status };
+
+        try {
+            const response = await fetch('/projects.json', {
+                method: editingProjectId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(project),
+            });
+
+            if (response.ok) {
+                alert(editingProjectId ? 'Projekt erfolgreich bearbeitet!' : 'Projekt erfolgreich erstellt!');
+                closeProjectForm();
+                fetchProjects();
+                sendSyncData('updateProjects'); // Synchronisierung auslösen
+            } else {
+                alert('Fehler beim Speichern des Projekts.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Speichern des Projekts:', error);
+        }
+    });
+
+    // Beispiel: Synchronisierung nach dem Hinzufügen einer Neuigkeit
+    document.getElementById('news-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('news-title').value;
+        const content = document.getElementById('news-content').value;
+
+        const newsItem = { id: Date.now().toString(), title, content };
+
+        try {
+            const response = await fetch('/news.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newsItem),
+            });
+
+            if (response.ok) {
+                alert('Neuigkeit erfolgreich hinzugefügt!');
+                document.getElementById('news-form').reset();
+                fetchNews();
+                sendSyncData('updateNews'); // Synchronisierung auslösen
+            } else {
+                alert('Fehler beim Hinzufügen der Neuigkeit.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Hinzufügen der Neuigkeit:', error);
+        }
+    });
+
+    // Funktion zum Abrufen und Anzeigen von Neuigkeiten
+    async function fetchNews() {
+        try {
+            const response = await fetch('/news.json');
+            if (!response.ok) {
+                throw new Error('Fehler beim Abrufen der Neuigkeiten');
+            }
+            const newsListe = document.getElementById('news-liste');
+            newsListe.innerHTML = '';
+            const newsItems = await response.json();
+            newsItems.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${item.title}</strong>: ${item.content}`;
+                newsListe.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Neuigkeiten:', error);
+        }
+    }
+
+    // Lade die Neuigkeiten beim Start
+    document.addEventListener('DOMContentLoaded', fetchNews);
+
 </script>
 </body>
 </html>
