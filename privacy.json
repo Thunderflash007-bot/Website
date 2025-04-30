@@ -1,3 +1,8 @@
 {
-  "text": "Hier steht die Datenschutzerklärung."
+  "intro": "Hier steht die Einleitung der Datenschutzerklärung.",
+  "data": "Welche Daten speichern wir? Beispiel: Name, E-Mail-Adresse.",
+  "storage": "Wie und wo speichern wir Ihre Daten? Beispiel: Auf sicheren Servern.",
+  "access": "Wer hat Zugriff auf Ihre Daten? Beispiel: Nur autorisierte Mitarbeiter.",
+  "sharing": "Weitergabe an Dritte: Beispiel: Keine Weitergabe ohne Zustimmung.",
+  "rights": "Ihre Rechte: Beispiel: Auskunft, Berichtigung, Löschung."
 }

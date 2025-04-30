@@ -407,10 +407,13 @@
 
     document.addEventListener('DOMContentLoaded', displayCodes);
 
-    // Datenschutzerklärung laden
+    // Datenschutzerklärung laden und Felder vorausfüllen
     async function loadPrivacySections() {
         try {
             const response = await fetch('/privacy.json');
+            if (!response.ok) {
+                throw new Error('Fehler beim Abrufen der Datenschutzerklärung');
+            }
             const privacyData = await response.json();
             document.getElementById('privacy-intro').value = privacyData.intro || '';
             document.getElementById('privacy-data').value = privacyData.data || '';
@@ -420,6 +423,7 @@
             document.getElementById('privacy-rights').value = privacyData.rights || '';
         } catch (error) {
             console.error('Fehler beim Laden der Datenschutzerklärung:', error);
+            alert('Fehler beim Laden der Datenschutzerklärung.');
         }
     }
 
@@ -445,10 +449,12 @@
             if (response.ok) {
                 alert('Datenschutzerklärung erfolgreich aktualisiert!');
             } else {
-                alert('Fehler beim Speichern der Datenschutzerklärung.');
+                const errorText = await response.text();
+                alert(`Fehler beim Speichern der Datenschutzerklärung: ${errorText}`);
             }
         } catch (error) {
             console.error('Fehler beim Speichern der Datenschutzerklärung:', error);
+            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
         }
     });
 
@@ -652,10 +658,12 @@
                 fetchNews();
                 sendSyncData('updateNews'); // Synchronisierung auslösen
             } else {
-                alert('Fehler beim Hinzufügen der Neuigkeit.');
+                const errorText = await response.text();
+                alert(`Fehler beim Hinzufügen der Neuigkeit: ${errorText}`);
             }
         } catch (error) {
             console.error('Fehler beim Hinzufügen der Neuigkeit:', error);
+            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
         }
     });
 

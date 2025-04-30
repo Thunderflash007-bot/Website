@@ -97,12 +97,21 @@ app.get('/privacy.json', (req, res) => {
 // Datenschutzerklärung speichern
 app.post('/privacy.json', (req, res) => {
     const newPrivacyData = req.body;
+
+    // Überprüfe, ob die erforderlichen Felder vorhanden sind
+    const requiredFields = ['intro', 'data', 'storage', 'access', 'sharing', 'rights'];
+    const isValid = requiredFields.every(field => field in newPrivacyData);
+
+    if (!isValid) {
+        return res.status(400).send('Ungültige Datenstruktur für die Datenschutzerklärung.');
+    }
+
     fs.writeFile(getFilePath('privacy.json'), JSON.stringify(newPrivacyData, null, 2), (err) => {
         if (err) {
             console.error('Fehler beim Speichern der Datenschutzerklärung:', err);
             res.status(500).send('Fehler beim Speichern der Datenschutzerklärung.');
         } else {
-            res.status(201).send('Datenschutzerklärung gespeichert.');
+            res.status(201).send('Datenschutzerklärung erfolgreich gespeichert.');
         }
     });
 });
@@ -188,6 +197,28 @@ app.post('/allowed_ips.json', (req, res) => {
             res.status(500).send('Fehler beim Speichern der allowed_ips.json.');
         } else {
             res.status(201).send('allowed_ips.json erfolgreich aktualisiert.');
+        }
+    });
+});
+
+// Neuigkeit hinzufügen
+app.post('/news.json', (req, res) => {
+    const newNewsItem = req.body;
+    fs.readFile(getFilePath('news.json'), 'utf8', (err, data) => {
+        if (err && err.code !== 'ENOENT') {
+            console.error('Fehler beim Lesen der Neuigkeiten:', err);
+            res.status(500).send('Fehler beim Hinzufügen der Neuigkeit.');
+        } else {
+            const news = data ? JSON.parse(data) : [];
+            news.push(newNewsItem);
+            fs.writeFile(getFilePath('news.json'), JSON.stringify(news, null, 2), (err) => {
+                if (err) {
+                    console.error('Fehler beim Speichern der Neuigkeit:', err);
+                    res.status(500).send('Fehler beim Speichern der Neuigkeit.');
+                } else {
+                    res.status(201).send('Neuigkeit hinzugefügt.');
+                }
+            });
         }
     });
 });
