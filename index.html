@@ -135,30 +135,9 @@
     document.addEventListener('DOMContentLoaded', fetchProjects);
 </script>
 <script>
-    document.getElementById('kontakt-formular').addEventListener('submit', async (e) => {
+    document.getElementById('kontakt-formular').addEventListener('submit', (e) => {
         e.preventDefault();
-        const name = document.getElementById('name').value;
-        const discord = document.getElementById('discord').value;
-        const message = document.getElementById('nachricht').value;
-
-        try {
-            const response = await fetch('/messages.json', { // Korrigiere die URL
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, discord, message })
-            });
-
-            if (response.ok) {
-                alert('Nachricht erfolgreich gesendet!');
-                document.getElementById('kontakt-formular').reset();
-            } else {
-                const errorText = await response.text();
-                alert(`Fehler beim Senden der Nachricht: ${errorText}`);
-            }
-        } catch (error) {
-            console.error('Fehler beim Senden der Nachricht:', error);
-            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
-        }
+        alert('Das Kontaktformular wurde vom Team gesperrt. Bei Fragen wenden Sie sich bitte an support@tth-projects.de.');
     });
 
     async function checkAllowedIPv6() {
