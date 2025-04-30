@@ -1,13 +1,35 @@
-// Funktion zum Abrufen und Speichern der öffentlichen IP-Adresse
-async function fetchAndStoreIp() {
+// Funktion zum Abrufen der Geräte-ID
+async function fetchDeviceId() {
     try {
         const response = await fetch('https://api.ipify.org?format=json');
         const { ip } = await response.json();
-        localStorage.setItem('userIp', ip);
+        return `device-${ip}`; // Beispiel: Geräte-ID basierend auf der IP-Adresse
     } catch (error) {
-        console.error('Fehler beim Abrufen der IP-Adresse:', error);
+        console.error('Fehler beim Abrufen der Geräte-ID:', error);
+        return null;
     }
 }
 
-// IP-Adresse beim Laden der Seite abrufen und speichern
-document.addEventListener('DOMContentLoaded', fetchAndStoreIp);
+// Funktion zum Generieren und Speichern der Geräte-ID
+function generateAndStoreDeviceId() {
+    if (!localStorage.getItem('deviceId')) {
+        const deviceId = '12345-ABCDE'; // Beispiel-Geräte-ID
+        localStorage.setItem('deviceId', deviceId);
+    }
+}
+
+function isDeviceVerified() {
+    const userDeviceId = localStorage.getItem('deviceId');
+    const verifiedDeviceId = localStorage.getItem('verifiedDeviceId');
+    return userDeviceId === verifiedDeviceId;
+}
+
+function showAdminLink() {
+    const userDeviceId = localStorage.getItem('deviceId');
+    const verifiedDeviceId = localStorage.getItem('verifiedDeviceId');
+    if (userDeviceId === verifiedDeviceId) {
+        document.getElementById('admin-link').style.display = 'block';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', showAdminLink);

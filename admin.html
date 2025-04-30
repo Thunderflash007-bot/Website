@@ -6,12 +6,15 @@
     <title>Admin Bereich</title>
     <link rel="stylesheet" href="styles.css">
     <script>
-        // Passwortschutz für die Admin-Seite
+        // Passwortschutz und Geräte-ID-Überprüfung für die Admin-Seite
         document.addEventListener('DOMContentLoaded', () => {
-            const adminPassword = '2q-tth';
+            const adminPassword = '2q-tth'; // Admin-Bereich Passwort
+            const allowedDeviceId = localStorage.getItem('verifiedDeviceId'); // Verifizierte Geräte-ID
             const userPassword = prompt('Bitte geben Sie das Admin-Passwort ein:');
-            if (userPassword !== adminPassword) {
-                alert('Falsches Passwort! Zugriff verweigert.');
+            const userDeviceId = localStorage.getItem('deviceId');
+
+            if (userPassword !== adminPassword || userDeviceId !== allowedDeviceId) {
+                alert('Falsches Passwort oder Gerät nicht verifiziert! Zugriff verweigert.');
                 window.location.href = 'index.html';
             }
         });
@@ -33,21 +36,6 @@
         <h2>Projektverwaltung</h2>
         <button id="projekt-erstellen-btn" onclick="createProject()">+ Projekt erstellen</button>
         <ul id="projekt-liste"></ul>
-    </section>
-    <section>
-        <h2>IP-Verwaltung</h2>
-        <form id="ip-form">
-            <label for="ip-input">IP-Adresse:</label>
-            <input type="text" id="ip-input" placeholder="z. B. 192.168.1.1" required>
-            <label>
-                <input type="checkbox" id="requires-password"> Passwort erforderlich
-            </label>
-            <input type="text" id="password-input" placeholder="Passwort (optional)" disabled>
-            <button type="submit">Hinzufügen</button>
-        </form>
-        <ul id="ip-liste">
-            <!-- Erlaubte IPs werden hier dauerhaft angezeigt -->
-        </ul>
     </section>
     <section>
         <h2>Umfragenverwaltung</h2>
@@ -111,10 +99,35 @@
     <section>
         <h2>Datenschutzerklärung bearbeiten</h2>
         <form id="privacy-form">
-            <label for="privacy-text">Text:</label>
-            <textarea id="privacy-text" placeholder="Text für die Datenschutzerklärung eingeben" required></textarea>
+            <label for="privacy-intro">Einleitung:</label>
+            <textarea id="privacy-intro" placeholder="Einleitung eingeben" required></textarea>
+            <label for="privacy-data">Welche Daten speichern wir?</label>
+            <textarea id="privacy-data" placeholder="Datenbeschreibung eingeben" required></textarea>
+            <label for="privacy-storage">Wie und wo speichern wir Ihre Daten?</label>
+            <textarea id="privacy-storage" placeholder="Speicherortbeschreibung eingeben" required></textarea>
+            <label for="privacy-access">Wer hat Zugriff auf Ihre Daten?</label>
+            <textarea id="privacy-access" placeholder="Zugriffsbeschreibung eingeben" required></textarea>
+            <label for="privacy-sharing">Weitergabe an Dritte:</label>
+            <textarea id="privacy-sharing" placeholder="Weitergabebeschreibung eingeben" required></textarea>
+            <label for="privacy-rights">Ihre Rechte:</label>
+            <textarea id="privacy-rights" placeholder="Rechtebeschreibung eingeben" required></textarea>
             <button type="submit">Speichern</button>
         </form>
+    </section>
+    <section>
+        <h2>Verifizierungscodes</h2>
+        <button onclick="generateVerificationCode()">Neuen Code generieren</button>
+        <ul id="code-liste">
+            <!-- Generierte Codes werden hier angezeigt -->
+        </ul>
+    </section>
+    <section>
+        <h2>Verifizierte Geräte</h2>
+        <ul id="verified-devices-list">
+            <!-- Verifizierte Geräte werden hier angezeigt -->
+        </ul>
+        <button onclick="clearVerifiedDevices()">Alle Geräte löschen</button>
+        <button onclick="addIPv6ToAllowed()">IPv6-Adresse zu erlaubten IPs hinzufügen</button>
     </section>
 </main>
 <footer>
@@ -129,6 +142,120 @@
         alert('Admin-E-Mail wurde erfolgreich geändert!');
     });
 
+    // Funktion zum Löschen aller verifizierten Geräte
+    function clearVerifiedDevices() {
+        if (confirm('Möchten Sie wirklich alle verifizierten Geräte löschen?')) {
+            localStorage.removeItem('verifiedDevices');
+            alert('Alle verifizierten Geräte wurden gelöscht.');
+            displayVerifiedDevices();
+        }
+    }
+
+    // Funktion zum Hinzufügen einer IPv6-Adresse im Admin-Bereich
+    async function addIPv6ToAllowed() {
+        const ipv6Address = prompt('Bitte geben Sie die IPv6-Adresse ein:');
+        if (ipv6Address) {
+            try {
+                const response = await fetch('/allowed_ips.json');
+                const allowedIps = await response.json();
+
+                if (!allowedIps.some(ipEntry => ipEntry.ip === ipv6Address)) {
+                    allowedIps.push({ ip: ipv6Address, requiresPassword: false, password: null });
+                    await fetch('/allowed_ips.json', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(allowedIps, null, 2),
+                    });
+                    alert('IPv6-Adresse erfolgreich hinzugefügt!');
+                } else {
+                    alert('Diese IPv6-Adresse ist bereits erlaubt.');
+                }
+            } catch (error) {
+                console.error('Fehler beim Hinzufügen der IPv6-Adresse:', error);
+            }
+        } else {
+            alert('Keine IPv6-Adresse eingegeben.');
+        }
+    }
+
+    // Funktion zum Verifizieren über IPv6
+    async function verifyIPv6() {
+        const ipv6Address = await fetchIPv6Address();
+        if (ipv6Address) {
+            const encryptedDevices = JSON.parse(localStorage.getItem('verifiedDevices')) || [];
+            const encryptedIPv6 = btoa(ipv6Address); // IPv6-Adresse verschlüsseln
+            if (!encryptedDevices.includes(encryptedIPv6)) {
+                encryptedDevices.push(encryptedIPv6);
+                localStorage.setItem('verifiedDevices', JSON.stringify(encryptedDevices));
+                alert('IPv6-Adresse erfolgreich verifiziert!');
+            } else {
+                alert('Diese IPv6-Adresse ist bereits verifiziert.');
+            }
+            displayVerifiedDevices();
+        } else {
+            alert('IPv6-Adresse konnte nicht ermittelt werden.');
+        }
+    }
+
+    // Funktion zum Verschlüsseln von Daten
+    function encryptData(data) {
+        return btoa(data); // Base64-Verschlüsselung (Beispiel)
+    }
+
+    // Funktion zum Entschlüsseln von Daten
+    function decryptData(data) {
+        return atob(data); // Base64-Entschlüsselung (Beispiel)
+    }
+
+    // Funktion zum Abrufen der IPv6-Adresse
+    async function fetchIPv6Address() {
+        try {
+            const response = await fetch('https://api64.ipify.org?format=json');
+            const { ip } = await response.json();
+            return ip; // IPv6-Adresse
+        } catch (error) {
+            console.error('Fehler beim Abrufen der IPv6-Adresse:', error);
+            return null;
+        }
+    }
+
+    // Funktion zum Anzeigen der verifizierten Geräte
+    async function displayVerifiedDevices() {
+        const encryptedDevices = JSON.parse(localStorage.getItem('verifiedDevices')) || [];
+        const verifiedDevicesList = document.getElementById('verified-devices-list');
+        verifiedDevicesList.innerHTML = '';
+
+        if (encryptedDevices.length > 0) {
+            encryptedDevices.forEach((encryptedDevice, index) => {
+                const li = document.createElement('li');
+                li.textContent = `Gerät ${index + 1}: ${decryptData(encryptedDevice)}`;
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Löschen';
+                deleteButton.onclick = () => {
+                    encryptedDevices.splice(index, 1);
+                    localStorage.setItem('verifiedDevices', JSON.stringify(encryptedDevices));
+                    displayVerifiedDevices();
+                };
+                li.appendChild(deleteButton);
+                verifiedDevicesList.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.textContent = 'Keine verifizierten Geräte gefunden.';
+            verifiedDevicesList.appendChild(li);
+        }
+    }
+
+    // Initialer Verifizierungscode setzen
+    document.addEventListener('DOMContentLoaded', () => {
+        const validCodes = JSON.parse(localStorage.getItem('validCodes')) || [];
+        if (!validCodes.includes('2q')) {
+            validCodes.push('2q');
+            localStorage.setItem('validCodes', JSON.stringify(validCodes));
+        }
+        displayVerifiedDevices();
+    });
+
     // Projekte abrufen und anzeigen
     async function fetchProjects() {
         try {
@@ -141,6 +268,7 @@
                 li.innerHTML = `
                     <strong>${project.name}</strong>: ${project.description}
                     <p>Status: ${getStatusText(project.status)}</p>
+                    <button onclick="editProject('${project.id}')">Bearbeiten</button>
                     <button onclick="deleteProject('${project.id}')">Löschen</button>
                 `;
                 projektListe.appendChild(li);
@@ -150,7 +278,64 @@
         }
     }
 
-    // Projekt erstellen
+    // Projekt bearbeiten
+    async function editProject(id) {
+        try {
+            const response = await fetch('/projects.json');
+            const projects = await response.json();
+            const project = projects.find(p => p.id === id);
+
+            if (project) {
+                const newName = prompt('Neuer Name:', project.name);
+                const newDescription = prompt('Neue Beschreibung:', project.description);
+                const newStatus = prompt('Neuer Status (online/offline):', project.status);
+
+                if (newName && newDescription && newStatus) {
+                    project.name = newName;
+                    project.description = newDescription;
+                    project.status = newStatus;
+
+                    const updatedProjects = projects.map(p => (p.id === id ? project : p));
+                    await fetch('/projects.json', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updatedProjects)
+                    });
+
+                    alert('Projekt erfolgreich bearbeitet!');
+                    fetchProjects();
+                } else {
+                    alert('Bearbeitung abgebrochen. Bitte geben Sie alle Informationen ein.');
+                }
+            } else {
+                alert('Projekt nicht gefunden.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Bearbeiten des Projekts:', error);
+        }
+    }
+
+    // Synchronisierungslogik
+    async function syncData() {
+        try {
+            const response = await fetch('/sync', { method: 'POST' });
+            if (response.ok) {
+                console.log('Daten erfolgreich synchronisiert.');
+            } else {
+                console.error('Fehler bei der Synchronisierung.');
+            }
+        } catch (error) {
+            console.error('Fehler bei der Synchronisierung:', error);
+        }
+    }
+
+    // Synchronisierung nach jeder Aktion
+    async function handleSyncAfterAction(action) {
+        await action();
+        await syncData();
+    }
+
+    // Beispiel: Projekt erstellen mit Synchronisierung
     async function createProject() {
         const projectName = prompt('Bitte geben Sie den Projektnamen ein:');
         const projectDescription = prompt('Bitte geben Sie die Projektbeschreibung ein:');
@@ -169,7 +354,7 @@
                 });
                 if (response.ok) {
                     alert('Projekt erfolgreich erstellt!');
-                    fetchProjects();
+                    await handleSyncAfterAction(fetchProjects);
                 } else {
                     alert('Fehler beim Erstellen des Projekts.');
                 }
@@ -223,246 +408,69 @@
         fetchProjects();
     }
 
-    // Projekt bearbeiten
-    function editProject(id) {
-        const projects = JSON.parse(localStorage.getItem('projects')) || [];
-        const project = projects.find(p => p.id === id);
-
-        if (project) {
-            document.getElementById('projekt-id').value = project.id;
-            document.getElementById('projekt-name').value = project.name;
-            document.getElementById('projekt-beschreibung').value = project.description;
-            document.getElementById('projekt-status').value = project.status || 'unknown';
-            document.getElementById('server-ip').value = project.serverIp || '';
-            openPopup();
+    // Verifizierungscode generieren
+    function generateVerificationCode() {
+        const newCode = prompt('Bitte geben Sie den neuen Verifizierungscode ein:');
+        if (newCode) {
+            const validCodes = JSON.parse(localStorage.getItem('validCodes')) || [];
+            validCodes.push(newCode);
+            localStorage.setItem('validCodes', JSON.stringify(validCodes));
+            alert('Neuer Code generiert: ' + newCode);
+            displayCodes();
         }
     }
 
-    // IPs abrufen und dauerhaft anzeigen
-    async function fetchIps() {
-        const response = await fetch('/allowed_ips.json');
-        const ips = await response.json();
-        const ipListe = document.getElementById('ip-liste');
-        ipListe.innerHTML = '';
-        ips.forEach(({ ip, requiresPassword, password }) => {
+    function displayCodes() {
+        const validCodes = JSON.parse(localStorage.getItem('validCodes')) || [];
+        const codeListe = document.getElementById('code-liste');
+        codeListe.innerHTML = '';
+        validCodes.forEach(code => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${ip}</strong> - Passwort erforderlich: ${requiresPassword ? 'Ja' : 'Nein'}
-                ${requiresPassword ? `(Passwort: ${password})` : ''}
-                <button onclick="removeIp('${ip}')">Entfernen</button>
-            `;
-            ipListe.appendChild(li);
+            li.textContent = code;
+            codeListe.appendChild(li);
         });
     }
 
-    // IP hinzufügen oder aktualisieren
-    document.getElementById('ip-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const ip = document.getElementById('ip-input').value;
-        const requiresPassword = document.getElementById('requires-password').checked;
-        const password = requiresPassword ? document.getElementById('password-input').value : null;
+    document.addEventListener('DOMContentLoaded', displayCodes);
 
-        const response = await fetch('/add-ip', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ip, requiresPassword, password })
-        });
-
-        if (response.ok) {
-            alert('IP-Adresse hinzugefügt oder aktualisiert');
-            fetchIps();
-        } else {
-            alert(await response.text());
-        }
-    });
-
-    // IP entfernen
-    async function removeIp(ip) {
-        const response = await fetch('/remove-ip', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ip })
-        });
-
-        if (response.ok) {
-            alert('IP-Adresse entfernt');
-            fetchIps();
-        } else {
-            alert(await response.text());
-        }
-    }
-
-    // Passwortfeld aktivieren/deaktivieren
-    document.getElementById('requires-password').addEventListener('change', (e) => {
-        document.getElementById('password-input').disabled = !e.target.checked;
-    });
-
-    // Weitere Antwortfelder hinzufügen
-    document.getElementById('add-option-btn').addEventListener('click', () => {
-        const container = document.getElementById('poll-options-container');
-        const optionDiv = document.createElement('div');
-        optionDiv.classList.add('poll-option');
-        optionDiv.innerHTML = `
-            <input type="text" name="poll-option" placeholder="Antwort eingeben" required>
-        `;
-        container.appendChild(optionDiv);
-    });
-
-    // Umfrage speichern
-    document.getElementById('poll-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const question = document.getElementById('poll-question').value;
-        const options = Array.from(document.querySelectorAll('input[name="poll-option"]')).map(input => input.value.trim()).filter(opt => opt);
-        const allowCustomAnswer = document.getElementById('allow-custom-answer').checked;
-        const allowMultiple = document.getElementById('allow-multiple').checked;
-
-        if (options.length === 0) {
-            alert('Bitte geben Sie mindestens eine Antwort ein.');
-            return;
-        }
-
-        const polls = JSON.parse(localStorage.getItem('polls')) || [];
-        polls.push({ question, options, allowCustomAnswer, allowMultiple, votes: {} });
-        localStorage.setItem('polls', JSON.stringify(polls));
-        alert('Umfrage erstellt!');
-        fetchPolls();
-        document.getElementById('poll-form').reset();
-        document.getElementById('poll-options-container').innerHTML = `
-            <label>Antworten:</label>
-            <div class="poll-option">
-                <input type="text" name="poll-option" placeholder="Antwort eingeben" required>
-            </div>
-        `;
-    });
-
-    // Ergebnisse anzeigen
-    function showResults(index) {
-        const polls = JSON.parse(localStorage.getItem('polls')) || [];
-        const poll = polls[index];
-        const resultsListe = document.getElementById('results-liste');
-        resultsListe.innerHTML = '';
-
-        if (!poll || !poll.votes) {
-            alert('Keine Ergebnisse verfügbar.');
-            return;
-        }
-
-        const voteCounts = {};
-        Object.values(poll.votes).flat().forEach(option => {
-            voteCounts[option] = (voteCounts[option] || 0) + 1;
-        });
-
-        for (const [option, count] of Object.entries(voteCounts)) {
-            const li = document.createElement('li');
-            li.textContent = `${option}: ${count} Stimme(n)`;
-            resultsListe.appendChild(li);
-        }
-    }
-
-    // Umfragen abrufen und anzeigen
-    function fetchPolls() {
-        const polls = JSON.parse(localStorage.getItem('polls')) || [];
-        const pollListe = document.getElementById('poll-liste');
-        pollListe.innerHTML = '';
-        polls.forEach((poll, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${poll.question}</strong>
-                <p>Antworten: ${poll.options.join(', ')}</p>
-                <p>Individuelle Antwort: ${poll.allowCustomAnswer ? 'Ja' : 'Nein'}</p>
-                <p>Mehrfachauswahl: ${poll.allowMultiple ? 'Ja' : 'Nein'}</p>
-                <button onclick="deletePoll(${index})">Löschen</button>
-                <button onclick="showResults(${index})">Ergebnisse anzeigen</button>
-            `;
-            pollListe.appendChild(li);
-        });
-    }
-
-    // Umfrage löschen
-    function deletePoll(index) {
-        const polls = JSON.parse(localStorage.getItem('polls')) || [];
-        polls.splice(index, 1);
-        localStorage.setItem('polls', JSON.stringify(polls));
-        fetchPolls();
-    }
-
-    // Neuigkeiten abrufen und anzeigen
-    function fetchNews() {
-        const news = JSON.parse(localStorage.getItem('news')) || [];
-        const newsListe = document.getElementById('news-liste');
-        newsListe.innerHTML = '';
-        news.forEach((item, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${item.title}</strong>
-                <p>${item.content}</p>
-                <button onclick="deleteNews(${index})">Löschen</button>
-            `;
-            newsListe.appendChild(li);
-        });
-    }
-
-    // Neuigkeit hinzufügen
-    document.getElementById('news-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = document.getElementById('news-title').value;
-        const content = document.getElementById('news-content').value;
-
-        const news = JSON.parse(localStorage.getItem('news')) || [];
-        news.push({ title, content });
-        localStorage.setItem('news', JSON.stringify(news));
-        alert('Neuigkeit hinzugefügt!');
-        fetchNews();
-        document.getElementById('news-form').reset();
-    });
-
-    // Neuigkeit löschen
-    function deleteNews(index) {
-        const news = JSON.parse(localStorage.getItem('news')) || [];
-        news.splice(index, 1);
-        localStorage.setItem('news', JSON.stringify(news));
-        fetchNews();
-    }
-
-    // "Über Uns"-Text abrufen und anzeigen
-    function fetchAboutText() {
-        const aboutText = localStorage.getItem('aboutText') || 'Wir sind ein Team von leidenschaftlichen Gamern und Entwicklern, die innovative Gaming-Projekte erstellen.';
-        document.getElementById('about-text').value = aboutText;
-    }
-
-    // "Über Uns"-Text speichern
-    document.getElementById('about-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const aboutText = document.getElementById('about-text').value;
-        localStorage.setItem('aboutText', aboutText);
-        alert('Text für "Über Uns" wurde erfolgreich gespeichert!');
-    });
-
-    // Datenschutzerklärung abrufen und anzeigen
-    async function fetchPrivacyText() {
+    // Datenschutzerklärung laden
+    async function loadPrivacySections() {
         try {
             const response = await fetch('/privacy.json');
             const privacyData = await response.json();
-            document.getElementById('privacy-text').value = privacyData.text || '';
+            document.getElementById('privacy-intro').value = privacyData.intro || '';
+            document.getElementById('privacy-data').value = privacyData.data || '';
+            document.getElementById('privacy-storage').value = privacyData.storage || '';
+            document.getElementById('privacy-access').value = privacyData.access || '';
+            document.getElementById('privacy-sharing').value = privacyData.sharing || '';
+            document.getElementById('privacy-rights').value = privacyData.rights || '';
         } catch (error) {
-            console.error('Fehler beim Abrufen der Datenschutzerklärung:', error);
+            console.error('Fehler beim Laden der Datenschutzerklärung:', error);
         }
     }
 
     // Datenschutzerklärung speichern
     document.getElementById('privacy-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const privacyText = document.getElementById('privacy-text').value;
+        const updatedPrivacy = {
+            intro: document.getElementById('privacy-intro').value,
+            data: document.getElementById('privacy-data').value,
+            storage: document.getElementById('privacy-storage').value,
+            access: document.getElementById('privacy-access').value,
+            sharing: document.getElementById('privacy-sharing').value,
+            rights: document.getElementById('privacy-rights').value,
+        };
 
         try {
             const response = await fetch('/privacy.json', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: privacyText })
+                body: JSON.stringify(updatedPrivacy),
             });
 
             if (response.ok) {
-                alert('Datenschutzerklärung erfolgreich gespeichert!');
+                alert('Datenschutzerklärung erfolgreich aktualisiert!');
+                await syncData();
             } else {
                 alert('Fehler beim Speichern der Datenschutzerklärung.');
             }
@@ -471,13 +479,10 @@
         }
     });
 
-    // Initiale Daten laden
-    fetchProjects();
-    fetchIps();
-    fetchPolls();
-    fetchNews();
-    fetchAboutText();
-    fetchPrivacyText();
+    document.addEventListener('DOMContentLoaded', async () => {
+        await fetchProjects();
+        await syncData();
+    });
 </script>
 </body>
 </html>

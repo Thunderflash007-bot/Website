@@ -5,8 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gaming Projekte</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="script.js"></script>
+    <style>
+        #hidden-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+        #verification-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        #verification-popup input {
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 5px;
+        }
+
+        #verification-popup button {
+            padding: 5px 10px;
+        }
+    </style>
 </head>
 <body>
+    <button id="hidden-button" onclick="openVerificationPopup()"></button>
+    <div id="verification-popup">
+        <h3>Verifizierung</h3>
+        <input type="text" id="verification-code" placeholder="Verifizierungscode eingeben">
+        <button onclick="verifyCode()">Verifizieren</button>
+        <button onclick="closeVerificationPopup()">Schließen</button>
+    </div>
     <header>
         <h1>Gaming Projekte</h1>
         <nav>
@@ -117,23 +160,35 @@
         }
     });
 
-    async function checkAllowedIp() {
+    async function checkAllowedIPv6() {
         try {
-            const ipResponse = await fetch('https://api.ipify.org?format=json');
-            const { ip } = await ipResponse.json();
-            const allowedIpsResponse = await fetch('/allowed_ips.json');
-            const allowedIps = await allowedIpsResponse.json();
+            const ipv6Address = await fetchIPv6Address();
+            const response = await fetch('/allowed_ips.json');
+            const allowedIps = await response.json();
 
-            const isAllowed = allowedIps.some(entry => entry.ip === ip);
+            const isAllowed = allowedIps.some(ipEntry => ipEntry.ip === ipv6Address);
             if (isAllowed) {
                 document.getElementById('admin-link').style.display = 'block';
+            } else {
+                document.getElementById('admin-link').style.display = 'none';
             }
         } catch (error) {
-            console.error('Fehler beim Überprüfen der IP-Adresse:', error);
+            console.error('Fehler beim Überprüfen der IPv6-Adresse:', error);
         }
     }
 
-    document.addEventListener('DOMContentLoaded', checkAllowedIp);
+    async function fetchIPv6Address() {
+        try {
+            const response = await fetch('https://api64.ipify.org?format=json');
+            const { ip } = await response.json();
+            return ip; // IPv6-Adresse
+        } catch (error) {
+            console.error('Fehler beim Abrufen der IPv6-Adresse:', error);
+            return null;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', checkAllowedIPv6);
 </script>
 <script>
     // Neuigkeiten abrufen und anzeigen
@@ -176,6 +231,70 @@
     }
 
     document.addEventListener('DOMContentLoaded', updateFooterEmail);
+</script>
+<script>
+    async function openVerificationPopup() {
+        try {
+            const ipv6Address = await fetchIPv6Address();
+            if (ipv6Address) {
+                document.getElementById('verification-popup').style.display = 'block';
+                localStorage.setItem('ipv6Address', ipv6Address);
+            } else {
+                alert('IPv6-Adresse konnte nicht ermittelt werden.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Öffnen des Verifizierungspopups:', error);
+        }
+    }
+
+    async function fetchIPv6Address() {
+        try {
+            const response = await fetch('https://api64.ipify.org?format=json');
+            const { ip } = await response.json();
+            return ip; // IPv6-Adresse
+        } catch (error) {
+            console.error('Fehler beim Abrufen der IPv6-Adresse:', error);
+            return null;
+        }
+    }
+
+    async function verifyCode() {
+        const enteredCode = document.getElementById('verification-code').value;
+        const validCodes = JSON.parse(localStorage.getItem('validCodes')) || ['2q']; // Beispiel-Verifizierungscode
+        const userIPv6 = localStorage.getItem('ipv6Address');
+
+        if (validCodes.includes(enteredCode)) {
+            const encryptedDevices = JSON.parse(localStorage.getItem('verifiedDevices')) || [];
+            const encryptedIPv6 = btoa(userIPv6); // IPv6-Adresse verschlüsseln
+            if (!encryptedDevices.includes(encryptedIPv6)) {
+                encryptedDevices.push(encryptedIPv6);
+                localStorage.setItem('verifiedDevices', JSON.stringify(encryptedDevices));
+            }
+            alert('Verifizierung erfolgreich!');
+            const updatedCodes = validCodes.filter(code => code !== enteredCode);
+            localStorage.setItem('validCodes', JSON.stringify(updatedCodes));
+            closeVerificationPopup();
+            showAdminLink();
+        } else {
+            alert('Ungültiger Code!');
+        }
+    }
+
+    function closeVerificationPopup() {
+        document.getElementById('verification-popup').style.display = 'none';
+    }
+
+    function showAdminLink() {
+        const userIPv6 = localStorage.getItem('ipv6Address');
+        const verifiedDevices = JSON.parse(localStorage.getItem('verifiedDevices')) || [];
+        const encryptedIPv6 = btoa(userIPv6);
+
+        if (verifiedDevices.includes(encryptedIPv6)) {
+            document.getElementById('admin-link').style.display = 'block';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', showAdminLink);
 </script>
 </body>
 </html>

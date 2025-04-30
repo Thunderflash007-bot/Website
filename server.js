@@ -172,3 +172,33 @@ app.delete('/:file', (req, res) => {
         }
     });
 });
+
+// Synchronisierungs-Endpunkt
+app.post('/sync', (req, res) => {
+    try {
+        // Beispiel: Daten aus einer Datei lesen und an alle Geräte senden
+        const projects = fs.readFileSync(getFilePath('projects.json'), 'utf8');
+        const privacy = fs.readFileSync(getFilePath('privacy.json'), 'utf8');
+        const data = { projects: JSON.parse(projects), privacy: JSON.parse(privacy) };
+
+        // Hier könnte eine WebSocket- oder Push-Benachrichtigung implementiert werden
+        console.log('Synchronisierung ausgelöst:', data);
+        res.status(200).send('Synchronisierung erfolgreich.');
+    } catch (error) {
+        console.error('Fehler bei der Synchronisierung:', error);
+        res.status(500).send('Fehler bei der Synchronisierung.');
+    }
+});
+
+// Aktualisieren der allowed_ips.json
+app.post('/allowed_ips.json', (req, res) => {
+    const newIps = req.body;
+    fs.writeFile(getFilePath('allowed_ips.json'), JSON.stringify(newIps, null, 2), (err) => {
+        if (err) {
+            console.error('Fehler beim Speichern der allowed_ips.json:', err);
+            res.status(500).send('Fehler beim Speichern der allowed_ips.json.');
+        } else {
+            res.status(201).send('allowed_ips.json erfolgreich aktualisiert.');
+        }
+    });
+});

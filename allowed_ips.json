@@ -8,5 +8,22 @@
     "ip": "176.2.186.222",
     "requiresPassword": false,
     "password": null
-  }
+  },
+  [
+    {
+      "ip": "93.230.15.40",
+      "requiresPassword": false,
+      "password": null
+    },
+    {
+      "ip": "176.2.186.222",
+      "requiresPassword": false,
+      "password": null
+    },
+    {
+      "ip": "2a02:3033:265:271f:e544:e297:2370:5108",
+      "requiresPassword": false,
+      "password": null
+    }
+  ]
 ]
