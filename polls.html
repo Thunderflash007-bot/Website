@@ -64,6 +64,13 @@
             const form = document.createElement('form');
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
+
+                // Verhindere mehrfache Abstimmungen
+                if (localStorage.getItem(`voted-${pollIndex}`)) {
+                    alert('Sie haben bereits abgestimmt.');
+                    return;
+                }
+
                 const selectedOptions = Array.from(form.querySelectorAll('input[name="option"]:checked')).map(input => input.value);
                 const customAnswers = Array.from(form.querySelectorAll('input[name="custom-answer"]')).map(input => input.value).filter(answer => answer.trim() !== '');
                 selectedOptions.push(...customAnswers);
@@ -79,6 +86,7 @@
                     body: JSON.stringify(polls),
                 }).then(() => {
                     alert('Danke für Ihre Teilnahme!');
+                    localStorage.setItem(`voted-${pollIndex}`, true); // Markiere als abgestimmt
                     renderChart(poll, chartCanvas, chartSection);
                 }).catch(error => {
                     console.error('Fehler beim Speichern der Abstimmung:', error);
@@ -140,10 +148,7 @@
     }
 
     function renderChart(poll, chartCanvas, chartSection) {
-        const voteCounts = {};
-        Object.values(poll.votes).flat().forEach((vote) => {
-            voteCounts[vote] = (voteCounts[vote] || 0) + 1;
-        });
+        const voteCounts = poll.votes; // Korrekte Zählung der Stimmen
 
         const labels = Object.keys(voteCounts);
         const data = Object.values(voteCounts);
