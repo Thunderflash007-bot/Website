@@ -486,7 +486,7 @@
             if (response.ok) {
                 alert('Umfrage erfolgreich erstellt!');
                 document.getElementById('poll-form').reset();
-                fetchPolls(); // Aktualisiere die Liste der Umfragen
+                await fetchPolls(); // Aktualisiere die Liste der Umfragen
             } else {
                 const errorText = await response.text();
                 alert(`Fehler beim Erstellen der Umfrage: ${errorText}`);
@@ -496,6 +496,28 @@
             alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
         }
     });
+
+    async function fetchPolls() {
+        try {
+            const response = await fetch('/polls.json');
+            if (!response.ok) {
+                throw new Error('Fehler beim Abrufen der Umfragen');
+            }
+            const polls = await response.json();
+            const pollListe = document.getElementById('poll-liste');
+            pollListe.innerHTML = '';
+            polls.forEach(poll => {
+                const li = document.createElement('li');
+                li.textContent = poll.question;
+                pollListe.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Fehler beim Laden der Umfragen:', error);
+            alert('Fehler beim Laden der Umfragen.');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchPolls);
 </script>
 </body>
 </html>
