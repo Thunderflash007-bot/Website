@@ -42,9 +42,34 @@
                 throw new Error('Fehler beim Abrufen der Umfragen');
             }
             const polls = await response.json();
+
+            // Lösche den Abstimmungsstatus und laufende Abstimmungen
+            resetVotingStatus(polls);
+
             renderPolls(polls);
         } catch (error) {
             console.error('Fehler beim Laden der Umfragen:', error);
+        }
+    }
+
+    function resetVotingStatus(polls) {
+        // Entferne alle gespeicherten Abstimmungsdaten
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('voted-') || key.startsWith('chartData-')) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        // Lösche alle laufenden Abstimmungen außer der neuesten
+        if (polls.length > 1) {
+            polls.splice(0, polls.length - 1);
+            fetch('/polls.json', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(polls),
+            }).catch(error => {
+                console.error('Fehler beim Löschen laufender Abstimmungen:', error);
+            });
         }
     }
 
