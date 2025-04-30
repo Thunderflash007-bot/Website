@@ -51,7 +51,7 @@
             <div id="poll-options-container">
                 <label>Antworten:</label>
                 <div class="poll-option">
-                    <input type="text" name="poll-option" placeholder="Antwort eingeben" required>
+                    <input type="text" name="poll-option" placeholder="Antwort eingeben" not required>
                 </div>
             </div>
             <button type="button" id="add-option-btn">Weitere Antwort hinzufügen</button>
@@ -61,7 +61,7 @@
             <label>
                 <input type="checkbox" id="allow-multiple"> Mehrfachauswahl erlauben
             </label>
-            <button type="submit">Umfrage erstellen</button>
+            <button type="submit">Umfrage erstellen </button>
         </form>
         <ul id="poll-liste">
             <!-- Umfragen werden hier angezeigt -->
@@ -459,6 +459,43 @@
     }
 
     document.addEventListener('DOMContentLoaded', loadPrivacySections);
+
+    document.getElementById('poll-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = document.getElementById('poll-question').value;
+        const options = Array.from(document.querySelectorAll('input[name="poll-option"]'))
+            .map(input => input.value)
+            .filter(option => option.trim() !== '');
+        const allowCustomAnswer = document.getElementById('allow-custom-answer').checked;
+        const allowMultiple = document.getElementById('allow-multiple').checked;
+
+        if (!question || options.length === 0) {
+            alert('Bitte geben Sie eine Frage und mindestens eine Antwortoption ein.');
+            return;
+        }
+
+        const newPoll = { question, options, allowCustomAnswer, allowMultiple, votes: {} };
+
+        try {
+            const response = await fetch('/polls.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPoll),
+            });
+
+            if (response.ok) {
+                alert('Umfrage erfolgreich erstellt!');
+                document.getElementById('poll-form').reset();
+                fetchPolls(); // Aktualisiere die Liste der Umfragen
+            } else {
+                const errorText = await response.text();
+                alert(`Fehler beim Erstellen der Umfrage: ${errorText}`);
+            }
+        } catch (error) {
+            console.error('Fehler beim Erstellen der Umfrage:', error);
+            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+        }
+    });
 </script>
 </body>
 </html>

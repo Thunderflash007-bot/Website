@@ -58,7 +58,7 @@ app.post('/polls.json', (req, res) => {
                     res.status(500).send('Fehler beim Speichern der Umfrage.');
                 } else {
                     io.emit('pollsUpdated', polls); // Synchronisiere Umfragen mit allen Clients
-                    res.status(201).send('Umfrage hinzugefügt.');
+                    res.status(201).send({ message: 'Umfrage hinzugefügt.', polls });
                 }
             });
         }
