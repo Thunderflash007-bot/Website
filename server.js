@@ -2,6 +2,9 @@ const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
 const DEFAULT_PORT = 3001;
 
@@ -9,9 +12,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+const server = http.createServer(app);
+const io = new Server(server);
+
+io.on('connection', (socket) => {
+    console.log('Ein Client hat sich verbunden.');
+
+    socket.on('disconnect', () => {
+        console.log('Ein Client hat die Verbindung getrennt.');
+    });
+});
+
 const port = process.env.PORT || DEFAULT_PORT;
 
-const server = app.listen(port, () => {
+server.listen(port, () => {
     console.log(`Server läuft auf http://localhost:${port}`);
 });
 
@@ -20,7 +34,7 @@ server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
         console.error(`Port ${port} ist bereits in Verwendung. Versuche einen anderen Port...`);
         const alternativePort = port + 1;
-        app.listen(alternativePort, () => {
+        server.listen(alternativePort, () => {
             console.log(`Server läuft jetzt auf http://localhost:${alternativePort}`);
         });
     } else {
@@ -28,63 +42,42 @@ server.on('error', (err) => {
     }
 });
 
-// Hilfsfunktion für plattformübergreifende Pfade
-function getFilePath(fileName) {
-    return path.join(__dirname, fileName);
-}
-
-// Projekte abrufen
-app.get('/projects.json', (req, res) => {
-    fs.readFile(getFilePath('projects.json'), 'utf8', (err, data) => {
-        if (err) {
-            console.error('Fehler beim Lesen der Projekte:', err);
-            res.status(500).send('Fehler beim Abrufen der Projekte.');
+// Umfrage hinzufügen und synchronisieren
+app.post('/polls.json', (req, res) => {
+    const newPoll = req.body;
+    fs.readFile(getFilePath('polls.json'), 'utf8', (err, data) => {
+        if (err && err.code !== 'ENOENT') {
+            console.error('Fehler beim Lesen der Umfragen:', err);
+            res.status(500).send('Fehler beim Hinzufügen der Umfrage.');
         } else {
-            res.json(JSON.parse(data));
-        }
-    });
-});
-
-// Projekt hinzufügen
-app.post('/projects.json', (req, res) => {
-    const newProject = req.body;
-    fs.readFile(getFilePath('projects.json'), 'utf8', (err, data) => {
-        if (err) {
-            console.error('Fehler beim Lesen der Projekte:', err);
-            res.status(500).send('Fehler beim Hinzufügen des Projekts.');
-        } else {
-            const projects = JSON.parse(data);
-            projects.push(newProject);
-            fs.writeFile(getFilePath('projects.json'), JSON.stringify(projects, null, 2), (err) => {
+            const polls = data ? JSON.parse(data) : [];
+            polls.push(newPoll);
+            fs.writeFile(getFilePath('polls.json'), JSON.stringify(polls, null, 2), (err) => {
                 if (err) {
-                    console.error('Fehler beim Speichern des Projekts:', err);
-                    res.status(500).send('Fehler beim Speichern des Projekts.');
+                    console.error('Fehler beim Speichern der Umfrage:', err);
+                    res.status(500).send('Fehler beim Speichern der Umfrage.');
                 } else {
-                    res.status(201).send('Projekt hinzugefügt.');
+                    io.emit('pollsUpdated', polls); // Synchronisiere Umfragen mit allen Clients
+                    res.status(201).send('Umfrage hinzugefügt.');
                 }
             });
         }
     });
 });
 
-// Projekt löschen
-app.delete('/projects.json', (req, res) => {
-    const projectId = req.query.id;
-    fs.readFile(getFilePath('projects.json'), 'utf8', (err, data) => {
+// Umfragen aktualisieren und synchronisieren
+app.put('/polls.json', (req, res) => {
+    const updatedPolls = req.body;
+    if (!Array.isArray(updatedPolls)) {
+        return res.status(400).send('Ungültiges Format: Erwartet ein Array von Umfragen.');
+    }
+    fs.writeFile(getFilePath('polls.json'), JSON.stringify(updatedPolls, null, 2), (err) => {
         if (err) {
-            console.error('Fehler beim Lesen der Projekte:', err);
-            res.status(500).send('Fehler beim Löschen des Projekts.');
+            console.error('Fehler beim Speichern der Umfragen:', err);
+            res.status(500).send('Fehler beim Speichern der Umfragen.');
         } else {
-            const projects = JSON.parse(data);
-            const updatedProjects = projects.filter(project => project.id !== projectId);
-            fs.writeFile(getFilePath('projects.json'), JSON.stringify(updatedProjects, null, 2), (err) => {
-                if (err) {
-                    console.error('Fehler beim Speichern der Projekte:', err);
-                    res.status(500).send('Fehler beim Löschen des Projekts.');
-                } else {
-                    res.status(200).send('Projekt gelöscht.');
-                }
-            });
+            io.emit('pollsUpdated', updatedPolls); // Synchronisiere Umfragen mit allen Clients
+            res.status(200).send('Umfragen erfolgreich aktualisiert.');
         }
     });
 });
@@ -202,3 +195,8 @@ app.post('/allowed_ips.json', (req, res) => {
         }
     });
 });
+
+// Funktion zum Ermitteln des Dateipfads
+function getFilePath(fileName) {
+    return path.join(__dirname, fileName);
+}

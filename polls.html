@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Umfragen</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
@@ -21,90 +22,166 @@
         <section id="polls-section">
             <!-- Umfragen werden hier dynamisch eingefügt -->
         </section>
+        <section id="chart-section" style="display: none;">
+            <h2>Ergebnisse</h2>
+            <canvas id="results-chart"></canvas>
+        </section>
     </main>
-    <script>
-        async function loadPolls() {
-            const polls = JSON.parse(localStorage.getItem('polls')) || [];
-            const pollsSection = document.getElementById('polls-section');
-            pollsSection.innerHTML = '';
+    <script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
 
-            const userIp = localStorage.getItem('userIp');
+    socket.on('pollsUpdated', (polls) => {
+        console.log('Umfragen wurden aktualisiert:', polls);
+        renderPolls(polls);
+    });
 
-            polls.forEach((poll, pollIndex) => {
-                const div = document.createElement('div');
-                div.classList.add('poll');
-                div.innerHTML = `<h3>${poll.question}</h3>`;
+    async function loadPolls() {
+        try {
+            const response = await fetch('/polls.json');
+            if (!response.ok) {
+                throw new Error('Fehler beim Abrufen der Umfragen');
+            }
+            const polls = await response.json();
+            renderPolls(polls);
+        } catch (error) {
+            console.error('Fehler beim Laden der Umfragen:', error);
+        }
+    }
 
-                poll.votes = poll.votes || {}; // Initialisiere votes, falls undefined
+    function renderPolls(polls) {
+        const pollsSection = document.getElementById('polls-section');
+        const chartSection = document.getElementById('chart-section');
+        const chartCanvas = document.getElementById('results-chart');
+        pollsSection.innerHTML = '';
 
-                if (poll.votes[userIp]) {
-                    div.innerHTML += `<p>Danke für Ihre Teilnahme!</p>`;
-                } else {
-                    const form = document.createElement('form');
-                    form.addEventListener('submit', (e) => {
-                        e.preventDefault();
-                        const selectedOptions = Array.from(form.querySelectorAll('input[name="option"]:checked')).map(input => input.value);
-                        if (poll.allowCustomAnswer) {
-                            const customAnswer = form.querySelector('input[name="custom-answer"]').value;
-                            if (customAnswer) selectedOptions.push(customAnswer);
-                        }
-                        poll.votes[userIp] = selectedOptions;
-                        localStorage.setItem('polls', JSON.stringify(polls));
-                        alert('Danke für Ihre Teilnahme!');
-                        loadPolls();
-                    });
+        const userIp = localStorage.getItem('userIp');
 
-                    poll.options.forEach((option, index) => {
-                        const wrapper = document.createElement('div');
-                        wrapper.style.display = 'flex';
-                        wrapper.style.alignItems = 'center';
-                        wrapper.style.marginBottom = '5px';
+        polls.forEach((poll, pollIndex) => {
+            const div = document.createElement('div');
+            div.classList.add('poll');
+            div.innerHTML = `<h3>${poll.question}</h3>`;
 
-                        const input = document.createElement('input');
-                        input.type = poll.allowMultiple ? 'checkbox' : 'radio';
-                        input.name = 'option';
-                        input.value = option;
-                        input.id = `option-${pollIndex}-${index}`;
-                        input.style.marginRight = '10px';
+            poll.votes = poll.votes || {}; // Initialisiere votes, falls undefined
 
-                        const label = document.createElement('label');
-                        label.textContent = option;
-                        label.setAttribute('for', `option-${pollIndex}-${index}`);
-                        label.style.margin = '0';
-
-                        wrapper.appendChild(input);
-                        wrapper.appendChild(label);
-                        form.appendChild(wrapper);
-                    });
-
+            if (poll.votes[userIp]) {
+                div.innerHTML += `<p>Danke für Ihre Teilnahme!</p>`;
+                renderChart(poll, chartCanvas, chartSection);
+            } else {
+                const form = document.createElement('form');
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const selectedOptions = Array.from(form.querySelectorAll('input[name="option"]:checked')).map(input => input.value);
                     if (poll.allowCustomAnswer) {
-                        const customWrapper = document.createElement('div');
-                        customWrapper.style.marginTop = '10px';
-
-                        const customInput = document.createElement('input');
-                        customInput.type = 'text';
-                        customInput.name = 'custom-answer';
-                        customInput.placeholder = 'Eigene Antwort';
-
-                        customWrapper.appendChild(customInput);
-                        form.appendChild(customWrapper);
+                        const customAnswer = form.querySelector('input[name="custom-answer"]').value;
+                        if (customAnswer) selectedOptions.push(customAnswer);
                     }
+                    poll.votes[userIp] = selectedOptions;
 
-                    const submitButton = document.createElement('button');
-                    submitButton.type = 'submit';
-                    submitButton.textContent = 'Abstimmen';
-                    submitButton.style.marginTop = '10px';
-                    form.appendChild(submitButton);
+                    // Speichere die aktualisierten Umfragen auf dem Server
+                    fetch('/polls.json', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(polls),
+                    }).then(() => {
+                        alert('Danke für Ihre Teilnahme!');
+                        renderChart(poll, chartCanvas, chartSection);
+                    }).catch(error => {
+                        console.error('Fehler beim Speichern der Abstimmung:', error);
+                    });
+                });
 
-                    div.appendChild(form);
+                poll.options.forEach((option, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.style.display = 'flex';
+                    wrapper.style.alignItems = 'center';
+                    wrapper.style.marginBottom = '5px';
+
+                    const input = document.createElement('input');
+                    input.type = poll.allowMultiple ? 'checkbox' : 'radio';
+                    input.name = 'option';
+                    input.value = option;
+                    input.id = `option-${pollIndex}-${index}`;
+                    input.style.marginRight = '10px';
+
+                    const label = document.createElement('label');
+                    label.textContent = option;
+                    label.setAttribute('for', `option-${pollIndex}-${index}`);
+                    label.style.margin = '0';
+
+                    wrapper.appendChild(input);
+                    wrapper.appendChild(label);
+                    form.appendChild(wrapper);
+                });
+
+                if (poll.allowCustomAnswer) {
+                    const customWrapper = document.createElement('div');
+                    customWrapper.style.marginTop = '10px';
+
+                    const customInput = document.createElement('input');
+                    customInput.type = 'text';
+                    customInput.name = 'custom-answer';
+                    customInput.placeholder = 'Eigene Antwort';
+
+                    customWrapper.appendChild(customInput);
+                    form.appendChild(customWrapper);
                 }
 
-                pollsSection.appendChild(div);
-            });
-        }
+                const submitButton = document.createElement('button');
+                submitButton.type = 'submit';
+                submitButton.textContent = 'Abstimmen';
+                submitButton.style.marginTop = '10px';
+                form.appendChild(submitButton);
 
-        document.addEventListener('DOMContentLoaded', loadPolls);
-    </script>
+                div.appendChild(form);
+            }
+
+            pollsSection.appendChild(div);
+        });
+    }
+
+    function renderChart(poll, chartCanvas, chartSection) {
+        const voteCounts = {};
+        Object.values(poll.votes).flat().forEach((vote) => {
+            voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+        });
+
+        const labels = Object.keys(voteCounts);
+        const data = Object.values(voteCounts);
+
+        new Chart(chartCanvas, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: labels.map(() => `hsl(${Math.random() * 360}, 70%, 70%)`),
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                return `${label}: ${value} Stimme(n)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        chartSection.style.display = 'block';
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPolls);
+</script>
 <footer>
     <p>Kontakt: <span id="footer-email">thunderflash@tth-projects.de</span></p>
 </footer>

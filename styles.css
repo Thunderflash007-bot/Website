@@ -162,6 +162,11 @@ form textarea {
     font-size: 1.5rem;
 }
 
+.popup-content button {
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
 .close-btn {
     position: absolute;
     top: 10px;

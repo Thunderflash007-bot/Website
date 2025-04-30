@@ -5,20 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Bereich</title>
     <link rel="stylesheet" href="styles.css">
-    <script>
-        // Passwortschutz und Geräte-ID-Überprüfung für die Admin-Seite
-        document.addEventListener('DOMContentLoaded', () => {
-            const adminPassword = '2q-tth'; // Admin-Bereich Passwort
-            const allowedDeviceId = localStorage.getItem('verifiedDeviceId'); // Verifizierte Geräte-ID
-            const userPassword = prompt('Bitte geben Sie das Admin-Passwort ein:');
-            const userDeviceId = localStorage.getItem('deviceId');
-
-            if (userPassword !== adminPassword || userDeviceId !== allowedDeviceId) {
-                alert('Falsches Passwort oder Gerät nicht verifiziert! Zugriff verweigert.');
-                window.location.href = 'index.html';
-            }
-        });
-    </script>
 </head>
 <body>
 <header>
@@ -34,9 +20,29 @@
 <main>
     <section>
         <h2>Projektverwaltung</h2>
-        <button id="projekt-erstellen-btn" onclick="createProject()">+ Projekt erstellen</button>
+        <button id="projekt-erstellen-btn" onclick="openProjectForm()">+ Projekt erstellen</button>
         <ul id="projekt-liste"></ul>
     </section>
+
+    <div id="project-form-popup" class="popup hidden">
+        <div class="popup-content">
+            <h3 id="project-form-title">Projekt erstellen</h3>
+            <form id="project-form">
+                <label for="project-name">Name:</label>
+                <input type="text" id="project-name" placeholder="Projektnamen eingeben" required>
+                <label for="project-description">Beschreibung:</label>
+                <textarea id="project-description" placeholder="Projektbeschreibung eingeben" required></textarea>
+                <label for="project-status">Status:</label>
+                <select id="project-status" required>
+                    <option value="online">Online</option>
+                    <option value="offline">Offline</option>
+                </select>
+                <button type="submit">Speichern</button>
+                <button type="button" onclick="closeProjectForm()">Abbrechen</button>
+            </form>
+        </div>
+    </div>
+
     <section>
         <h2>Umfragenverwaltung</h2>
         <form id="poll-form">
@@ -133,13 +139,71 @@
 <footer>
     <p>Kontakt: <span id="footer-email">thunderflash@tth-projects.de</span></p>
 </footer>
+<div id="password-popup" class="popup hidden">
+    <div class="popup-content">
+        <h3>Admin-Bereich</h3>
+        <p>Bitte geben Sie das Admin-Passwort ein:</p>
+        <input type="password" id="admin-password-input" placeholder="Passwort eingeben">
+        <button onclick="verifyAdminPassword()">Bestätigen</button>
+    </div>
+</div>
 <script>
-    // Admin-E-Mail speichern
-    document.getElementById('email-form').addEventListener('submit', (e) => {
+    let editingProjectId = null;
+
+    function openProjectForm(project = null) {
+        const popup = document.getElementById('project-form-popup');
+        const title = document.getElementById('project-form-title');
+        const nameInput = document.getElementById('project-name');
+        const descriptionInput = document.getElementById('project-description');
+        const statusSelect = document.getElementById('project-status');
+
+        if (project) {
+            title.textContent = 'Projekt bearbeiten';
+            nameInput.value = project.name;
+            descriptionInput.value = project.description;
+            statusSelect.value = project.status;
+            editingProjectId = project.id;
+        } else {
+            title.textContent = 'Projekt erstellen';
+            nameInput.value = '';
+            descriptionInput.value = '';
+            statusSelect.value = 'offline';
+            editingProjectId = null;
+        }
+
+        popup.classList.remove('hidden');
+    }
+
+    function closeProjectForm() {
+        const popup = document.getElementById('project-form-popup');
+        popup.classList.add('hidden');
+    }
+
+    document.getElementById('project-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('admin-email').value;
-        localStorage.setItem('adminEmail', email);
-        alert('Admin-E-Mail wurde erfolgreich geändert!');
+        const name = document.getElementById('project-name').value;
+        const description = document.getElementById('project-description').value;
+        const status = document.getElementById('project-status').value;
+
+        const project = { id: editingProjectId || Date.now().toString(), name, description, status };
+
+        try {
+            const response = await fetch('/projects.json', {
+                method: editingProjectId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(project),
+            });
+
+            if (response.ok) {
+                alert(editingProjectId ? 'Projekt erfolgreich bearbeitet!' : 'Projekt erfolgreich erstellt!');
+                closeProjectForm();
+                fetchProjects();
+            } else {
+                alert('Fehler beim Speichern des Projekts.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Speichern des Projekts:', error);
+        }
     });
 
     // Funktion zum Löschen aller verifizierten Geräte
@@ -256,10 +320,13 @@
         displayVerifiedDevices();
     });
 
-    // Projekte abrufen und anzeigen
+    // Projekte abrufen und im Admin-Bereich anzeigen
     async function fetchProjects() {
         try {
             const response = await fetch('/projects.json');
+            if (!response.ok) {
+                throw new Error('Fehler beim Abrufen der Projekte');
+            }
             const projects = await response.json();
             const projektListe = document.getElementById('projekt-liste');
             projektListe.innerHTML = '';
@@ -267,7 +334,7 @@
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <strong>${project.name}</strong>: ${project.description}
-                    <p>Status: ${getStatusText(project.status)}</p>
+                    <p>Status: ${project.status === 'online' ? 'Online ✅' : 'Offline ❌'}</p>
                     <button onclick="editProject('${project.id}')">Bearbeiten</button>
                     <button onclick="deleteProject('${project.id}')">Löschen</button>
                 `;
@@ -282,31 +349,13 @@
     async function editProject(id) {
         try {
             const response = await fetch('/projects.json');
+            if (!response.ok) {
+                throw new Error('Fehler beim Abrufen der Projekte');
+            }
             const projects = await response.json();
             const project = projects.find(p => p.id === id);
-
             if (project) {
-                const newName = prompt('Neuer Name:', project.name);
-                const newDescription = prompt('Neue Beschreibung:', project.description);
-                const newStatus = prompt('Neuer Status (online/offline):', project.status);
-
-                if (newName && newDescription && newStatus) {
-                    project.name = newName;
-                    project.description = newDescription;
-                    project.status = newStatus;
-
-                    const updatedProjects = projects.map(p => (p.id === id ? project : p));
-                    await fetch('/projects.json', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(updatedProjects)
-                    });
-
-                    alert('Projekt erfolgreich bearbeitet!');
-                    fetchProjects();
-                } else {
-                    alert('Bearbeitung abgebrochen. Bitte geben Sie alle Informationen ein.');
-                }
+                openProjectForm(project);
             } else {
                 alert('Projekt nicht gefunden.');
             }
@@ -315,58 +364,10 @@
         }
     }
 
-    // Synchronisierungslogik
-    async function syncData() {
-        try {
-            const response = await fetch('/sync', { method: 'POST' });
-            if (response.ok) {
-                console.log('Daten erfolgreich synchronisiert.');
-            } else {
-                console.error('Fehler bei der Synchronisierung.');
-            }
-        } catch (error) {
-            console.error('Fehler bei der Synchronisierung:', error);
-        }
-    }
+    // Initialisiere die Anzeige der Projekte beim Laden der Seite
+    document.addEventListener('DOMContentLoaded', fetchProjects);
 
-    // Synchronisierung nach jeder Aktion
-    async function handleSyncAfterAction(action) {
-        await action();
-        await syncData();
-    }
-
-    // Beispiel: Projekt erstellen mit Synchronisierung
-    async function createProject() {
-        const projectName = prompt('Bitte geben Sie den Projektnamen ein:');
-        const projectDescription = prompt('Bitte geben Sie die Projektbeschreibung ein:');
-        if (projectName && projectDescription) {
-            const newProject = {
-                id: Date.now().toString(),
-                name: projectName,
-                description: projectDescription,
-                status: 'offline'
-            };
-            try {
-                const response = await fetch('/projects.json', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newProject)
-                });
-                if (response.ok) {
-                    alert('Projekt erfolgreich erstellt!');
-                    await handleSyncAfterAction(fetchProjects);
-                } else {
-                    alert('Fehler beim Erstellen des Projekts.');
-                }
-            } catch (error) {
-                console.error('Fehler beim Erstellen des Projekts:', error);
-            }
-        } else {
-            alert('Projekterstellung abgebrochen. Bitte geben Sie alle Informationen ein.');
-        }
-    }
-
-    // Projekt löschen
+    // Funktion zum Löschen eines Projekts
     async function deleteProject(id) {
         try {
             const response = await fetch(`/projects.json?id=${id}`, { method: 'DELETE' });
@@ -379,33 +380,6 @@
         } catch (error) {
             console.error('Fehler beim Löschen des Projekts:', error);
         }
-    }
-
-    // Status-Text mit Emoji basierend auf dem Status zurückgeben
-    function getStatusText(status) {
-        if (status === 'online') {
-            return 'Online ✅';
-        } else if (status === 'offline') {
-            return 'Offline ❌';
-        } else {
-            return 'Unbekannt ❓';
-        }
-    }
-
-    // Projekt speichern (neu oder aktualisieren)
-    function saveProject(project) {
-        const projects = JSON.parse(localStorage.getItem('projects')) || [];
-        const existingIndex = projects.findIndex(p => p.id === project.id);
-
-        if (existingIndex !== -1) {
-            projects[existingIndex] = project;
-        } else {
-            projects.push(project);
-        }
-
-        localStorage.setItem('projects', JSON.stringify(projects));
-        alert('Projekt erfolgreich gespeichert!');
-        fetchProjects();
     }
 
     // Verifizierungscode generieren
@@ -470,7 +444,6 @@
 
             if (response.ok) {
                 alert('Datenschutzerklärung erfolgreich aktualisiert!');
-                await syncData();
             } else {
                 alert('Fehler beim Speichern der Datenschutzerklärung.');
             }
@@ -479,10 +452,138 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        await fetchProjects();
-        await syncData();
+    // Umfrage beenden
+    async function endPoll(index) {
+        try {
+            const response = await fetch('/polls.json');
+            if (!response.ok) {
+                throw new Error('Fehler beim Abrufen der Umfragen');
+            }
+            let polls = await response.json();
+
+            // Überprüfe, ob polls ein Array ist
+            if (!Array.isArray(polls)) {
+                throw new Error('Ungültiges Umfrageformat: polls ist kein Array');
+            }
+
+            // Entferne die Umfrage aus der Liste
+            polls.splice(index, 1);
+
+            // Speichere die aktualisierte Liste der Umfragen
+            const saveResponse = await fetch('/polls.json', {
+                method: 'PUT', // Verwende PUT, um die Datei zu aktualisieren
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(polls, null, 2),
+            });
+
+            if (saveResponse.ok) {
+                alert('Umfrage erfolgreich beendet!');
+                fetchPolls(); // Aktualisiere die Liste der Umfragen
+            } else {
+                throw new Error('Fehler beim Speichern der aktualisierten Umfragen');
+            }
+        } catch (error) {
+            console.error('Fehler beim Beenden der Umfrage:', error);
+            alert('Ein Fehler ist aufgetreten: ' + error.message);
+        }
+    }
+
+    // Umfragen abrufen und anzeigen
+    async function fetchPolls() {
+        try {
+            const response = await fetch('/polls.json');
+            if (!response.ok) {
+                throw new Error('Fehler beim Abrufen der Umfragen');
+            }
+            const polls = await response.json();
+
+            const pollListe = document.getElementById('poll-liste');
+            pollListe.innerHTML = '';
+            polls.forEach((poll, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <strong>${poll.question}</strong>
+                    <button onclick="endPoll(${index})">Beenden</button>
+                `;
+                pollListe.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Umfragen:', error);
+        }
+    }
+
+    // Initialisiere die Anzeige der Umfragen beim Laden der Seite
+    document.addEventListener('DOMContentLoaded', fetchPolls);
+
+    // Umfrage erstellen
+    document.getElementById('poll-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = document.getElementById('poll-question').value;
+        const options = Array.from(document.querySelectorAll('input[name="poll-option"]')).map(input => input.value);
+        const allowCustomAnswer = document.getElementById('allow-custom-answer').checked;
+        const allowMultiple = document.getElementById('allow-multiple').checked;
+
+        const newPoll = { question, options, allowCustomAnswer, allowMultiple, votes: {} };
+
+        try {
+            const response = await fetch('/polls.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPoll),
+            });
+
+            if (response.ok) {
+                alert('Umfrage erfolgreich erstellt!');
+                document.getElementById('poll-form').reset();
+
+                // Antwortfelder auf ein einziges Feld zurücksetzen
+                const container = document.getElementById('poll-options-container');
+                container.innerHTML = `
+                    <label>Antworten:</label>
+                    <div class="poll-option">
+                        <input type="text" name="poll-option" placeholder="Antwort eingeben" required>
+                    </div>
+                `;
+
+                fetchPolls();
+            } else {
+                alert('Fehler beim Erstellen der Umfrage.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Erstellen der Umfrage:', error);
+        }
     });
+
+    // Weitere Antwort hinzufügen
+    document.getElementById('add-option-btn').addEventListener('click', () => {
+        const container = document.getElementById('poll-options-container');
+        const div = document.createElement('div');
+        div.classList.add('poll-option');
+        div.innerHTML = `<input type="text" name="poll-option" placeholder="Antwort eingeben" required>`;
+        container.appendChild(div);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        showPasswordPopup();
+    });
+
+    function showPasswordPopup() {
+        const popup = document.getElementById('password-popup');
+        popup.classList.remove('hidden');
+    }
+
+    function verifyAdminPassword() {
+        const adminPassword = '2q-tth'; // Admin-Bereich Passwort
+        const userPassword = document.getElementById('admin-password-input').value;
+
+        if (userPassword === adminPassword) {
+            const popup = document.getElementById('password-popup');
+            popup.classList.add('hidden');
+        } else {
+            alert('Falsches Passwort! Zugriff verweigert.');
+            window.location.href = 'index.html';
+        }
+    }
 </script>
 </body>
 </html>

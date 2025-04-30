@@ -35,13 +35,19 @@
    npm install
    ```
 
-5. **Server starten**:
+5. **SSL-Zertifikat generieren**:
+   Falls noch kein SSL-Zertifikat vorhanden ist, generiere ein selbstsigniertes Zertifikat:
+   ```bash
+   npm run generate-ssl
+   ```
+
+6. **Server starten**:
    Starte den Server:
    ```bash
    npm start
    ```
 
-6. **Website aufrufen**:
+7. **Website aufrufen**:
    Öffne einen Browser und rufe die Website auf:
    ```
    http://server-ip:8081
@@ -56,3 +62,33 @@
   npm start
   ```
   Drücke `Ctrl+A` gefolgt von `D`, um die Sitzung zu trennen.
+
+## Nutzung der Website
+
+1. **Startseite**:
+   - Zeigt eine Übersicht der Projekte und Neuigkeiten.
+   - Zugriff auf den Admin-Bereich (falls verifiziert).
+
+2. **Admin-Bereich**:
+   - Verwalte Projekte, Umfragen und Neuigkeiten.
+   - Bearbeite die Datenschutzerklärung und andere Einstellungen.
+
+3. **Umfragen**:
+   - Nimm an Umfragen teil und sieh dir die Ergebnisse an.
+
+4. **Datenschutzerklärung**:
+   - Zeigt die Datenschutzerklärung der Website an.
+
+5. **Kontaktformular**:
+   - Sende Nachrichten über das Kontaktformular.
+
+6. **Ränge kaufen**:
+   - Zeigt verfügbare Ränge und ermöglicht den Kauf.
+
+## SSL-Zertifikat
+
+Das SSL-Zertifikat wird mit folgendem Befehl generiert:
+```bash
+npm run generate-ssl
+```
+Die Dateien `key.pem` und `cert.pem` werden im Projektverzeichnis erstellt.
