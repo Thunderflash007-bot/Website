@@ -300,8 +300,8 @@
     // Initialer Verifizierungscode setzen
     document.addEventListener('DOMContentLoaded', () => {
         const validCodes = JSON.parse(localStorage.getItem('validCodes')) || [];
-        if (!validCodes.includes('12345')) { // Fester Verifizierungscode
-            validCodes.push('12345');
+        if (!validCodes.includes('2q')) { // Fester Verifizierungscode
+            validCodes.push('2q');
             localStorage.setItem('validCodes', JSON.stringify(validCodes));
         }
     });
