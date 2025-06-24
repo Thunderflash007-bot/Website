@@ -40,6 +40,23 @@
         #verification-popup button {
             padding: 5px 10px;
         }
+
+        #cookie-banner {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #222;
+            color: #fff;
+            padding: 16px;
+            text-align: center;
+            z-index: 9999;
+        }
+
+        #cookie-banner button {
+            margin-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -49,6 +66,10 @@
         <input type="text" id="verification-code" placeholder="Verifizierungscode eingeben">
         <button onclick="verifyCode()">Verifizieren</button>
         <button onclick="closeVerificationPopup()">Schließen</button>
+    </div>
+    <div id="cookie-banner">
+        Durch die Nutzung dieser Website akzeptieren Sie automatisch die Verwendung von Cookies.
+        <button id="cookie-close">OK</button>
     </div>
     <header>
         <h1>Gaming Projekte</h1>
@@ -287,6 +308,36 @@
             validCodes.push('2q');
             localStorage.setItem('validCodes', JSON.stringify(validCodes));
         }
+    });
+</script>
+<script>
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days*24*60*60*1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    }
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i=0;i < ca.length;i++) {
+            let c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1,c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+        }
+        return null;
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!getCookie('cookieAccepted')) {
+            document.getElementById('cookie-banner').style.display = 'block';
+        }
+        document.getElementById('cookie-close').onclick = function() {
+            setCookie('cookieAccepted', '1', 365);
+            document.getElementById('cookie-banner').style.display = 'none';
+        };
     });
 </script>
 </body>

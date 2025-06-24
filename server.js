@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const express = require('express');
 
 const app = express();
-const DEFAULT_PORT = process.env.PORT || 3003;
+const DEFAULT_PORT = 4003;
 
 app.use(cors());
 app.use(express.json());
