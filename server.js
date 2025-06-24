@@ -1,12 +1,12 @@
 const fs = require('fs');
 const cors = require('cors');
-const path = require('path');
+const path = require('path'); 
 const http = require('http');
 const { Server } = require('socket.io');
 const express = require('express');
 
 const app = express();
-const DEFAULT_PORT = 4003;
+const DEFAULT_PORT = process.env.PORT || 4003;
 
 app.use(cors());
 app.use(express.json());
@@ -228,6 +228,32 @@ app.get('/error_reports', (req, res) => {
             res.json([]);
         } else {
             res.json(JSON.parse(data));
+        }
+    });
+});
+
+// Endpunkt für Sponsoren abrufen
+app.get('/sponsors.json', (req, res) => {
+    fs.readFile(getFilePath('sponsors.json'), 'utf8', (err, data) => {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                res.json([]);
+            } else {
+                res.status(500).send('Fehler beim Abrufen der Sponsoren.');
+            }
+        } else {
+            res.json(JSON.parse(data));
+        }
+    });
+});
+// Endpunkt für Sponsoren speichern
+app.post('/sponsors.json', (req, res) => {
+    const sponsors = req.body;
+    fs.writeFile(getFilePath('sponsors.json'), JSON.stringify(sponsors, null, 2), (err) => {
+        if (err) {
+            res.status(500).send('Fehler beim Speichern der Sponsoren.');
+        } else {
+            res.status(201).send('Sponsoren erfolgreich gespeichert.');
         }
     });
 });

@@ -139,6 +139,15 @@
         <h2>Testfunktionen</h2>
         <button onclick="triggerTestError()">Test Error erzeugen</button>
     </section>
+    <section>
+        <h2>Sponsoren/Partner verwalten</h2>
+        <form id="sponsor-form">
+            <input type="text" id="sponsor-name" placeholder="Name des Sponsors/Partners" required>
+            <input type="url" id="sponsor-link" placeholder="Link (optional)">
+            <button type="submit">Sponsor hinzufügen</button>
+        </form>
+        <ul id="sponsor-liste"></ul>
+    </section>
 </main>
 <footer>
     <p>Kontakt: <span id="footer-email">support@tth-projects.de</span></p>
@@ -708,6 +717,52 @@
             showErrorReportDialog(e.message);
         }
     }
+
+    async function fetchSponsors() {
+        try {
+            const response = await fetch('/sponsors.json');
+            const sponsors = await response.json();
+            const sponsorListe = document.getElementById('sponsor-liste');
+            sponsorListe.innerHTML = '';
+            sponsors.forEach((sponsor, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = sponsor.link ? `<a href="${sponsor.link}" target="_blank">${sponsor.name}</a>` : sponsor.name;
+                const delBtn = document.createElement('button');
+                delBtn.textContent = 'Entfernen';
+                delBtn.onclick = async () => {
+                    sponsors.splice(idx, 1);
+                    await saveSponsors(sponsors);
+                    fetchSponsors();
+                };
+                li.appendChild(delBtn);
+                sponsorListe.appendChild(li);
+            });
+        } catch (e) {
+            console.error('Fehler beim Laden der Sponsoren:', e);
+        }
+    }
+    async function saveSponsors(sponsors) {
+        await fetch('/sponsors.json', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sponsors),
+        });
+    }
+    document.getElementById('sponsor-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('sponsor-name').value;
+        const link = document.getElementById('sponsor-link').value;
+        let sponsors = [];
+        try {
+            const resp = await fetch('/sponsors.json');
+            if (resp.ok) sponsors = await resp.json();
+        } catch {}
+        sponsors.push({ name, link });
+        await saveSponsors(sponsors);
+        document.getElementById('sponsor-form').reset();
+        fetchSponsors();
+    });
+    document.addEventListener('DOMContentLoaded', fetchSponsors);
 </script>
 </body>
 </html>
