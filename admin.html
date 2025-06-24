@@ -135,6 +135,10 @@
         <button onclick="clearVerifiedDevices()">Alle Geräte löschen</button>
         <button onclick="addIPv6ToAllowed()">IPv6-Adresse zu erlaubten IPs hinzufügen</button>
     </section>
+    <section>
+        <h2>Testfunktionen</h2>
+        <button onclick="triggerTestError()">Test Error erzeugen</button>
+    </section>
 </main>
 <footer>
     <p>Kontakt: <span id="footer-email">support@tth-projects.de</span></p>
@@ -474,19 +478,26 @@
             return;
         }
 
-        const newPoll = { question, options, allowCustomAnswer, allowMultiple, votes: {} };
+        // Neue Umfrage: alle anderen Umfragen als beendet markieren
+        let polls = [];
+        try {
+            const resp = await fetch('/polls.json');
+            if (resp.ok) polls = await resp.json();
+        } catch {}
+        polls.forEach(p => p.ended = true);
+        const newPoll = { question, options, allowCustomAnswer, allowMultiple, votes: {}, ended: false };
+        polls.push(newPoll);
 
         try {
             const response = await fetch('/polls.json', {
-                method: 'POST',
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newPoll),
+                body: JSON.stringify(polls),
             });
-
             if (response.ok) {
                 alert('Umfrage erfolgreich erstellt!');
                 document.getElementById('poll-form').reset();
-                await fetchPolls(); // Aktualisiere die Liste der Umfragen
+                await fetchPolls();
             } else {
                 const errorText = await response.text();
                 alert(`Fehler beim Erstellen der Umfrage: ${errorText}`);
@@ -506,9 +517,21 @@
             const polls = await response.json();
             const pollListe = document.getElementById('poll-liste');
             pollListe.innerHTML = '';
-            polls.forEach(poll => {
+            polls.forEach((poll, idx) => {
                 const li = document.createElement('li');
-                li.textContent = poll.question;
+                li.textContent = poll.question + (poll.ended ? ' (beendet)' : '');
+                // Button zum Beenden der Umfrage
+                if (!poll.ended) {
+                    const endBtn = document.createElement('button');
+                    endBtn.textContent = 'Umfrage beenden';
+                    endBtn.onclick = async () => {
+                        await fetch(`/polls.json/end/${idx}`, {
+                            method: 'PUT',
+                        });
+                        fetchPolls();
+                    };
+                    li.appendChild(endBtn);
+                }
                 pollListe.appendChild(li);
             });
         } catch (error) {
@@ -518,6 +541,173 @@
     }
 
     document.addEventListener('DOMContentLoaded', fetchPolls);
+
+    // Neuigkeit speichern
+    document.getElementById('news-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('news-title').value;
+        const content = document.getElementById('news-content').value;
+        const newsItem = { title, content };
+        try {
+            const response = await fetch('/news.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newsItem),
+            });
+            if (response.ok) {
+                alert('Neuigkeit erfolgreich hinzugefügt!');
+                document.getElementById('news-form').reset();
+                fetchNews();
+            } else {
+                alert('Fehler beim Hinzufügen der Neuigkeit.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Hinzufügen der Neuigkeit:', error);
+        }
+    });
+
+    // Neuigkeiten laden
+    async function fetchNews() {
+        try {
+            const response = await fetch('/news.json');
+            if (!response.ok) throw new Error('Fehler beim Abrufen der Neuigkeiten');
+            const news = await response.json();
+            const newsListe = document.getElementById('news-liste');
+            newsListe.innerHTML = '';
+            news.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${item.title}</strong><p>${item.content}</p>`;
+                newsListe.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Fehler beim Laden der Neuigkeiten:', error);
+        }
+    }
+    document.addEventListener('DOMContentLoaded', fetchNews);
+
+    // "Über Uns" speichern
+    document.getElementById('about-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const aboutText = document.getElementById('about-text').value;
+        try {
+            const response = await fetch('/about.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aboutText }),
+            });
+            if (response.ok) {
+                alert('"Über Uns" erfolgreich gespeichert!');
+            } else {
+                alert('Fehler beim Speichern von "Über Uns".');
+            }
+        } catch (error) {
+            console.error('Fehler beim Speichern von "Über Uns":', error);
+        }
+    });
+    // "Über Uns" laden
+    async function loadAboutText() {
+        try {
+            const response = await fetch('/about.json');
+            if (!response.ok) throw new Error('Fehler beim Abrufen von "Über Uns"');
+            const data = await response.json();
+            document.getElementById('about-text').value = data.aboutText || '';
+        } catch (error) {
+            console.error('Fehler beim Laden von "Über Uns":', error);
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadAboutText);
+
+    // Admin-E-Mail speichern
+    document.getElementById('email-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('admin-email').value;
+        try {
+            const response = await fetch('/admin_email.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            if (response.ok) {
+                alert('E-Mail erfolgreich gespeichert!');
+            } else {
+                alert('Fehler beim Speichern der E-Mail.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Speichern der E-Mail:', error);
+        }
+    });
+    // Admin-E-Mail laden
+    async function loadAdminEmail() {
+        try {
+            const response = await fetch('/admin_email.json');
+            if (!response.ok) throw new Error('Fehler beim Abrufen der E-Mail');
+            const data = await response.json();
+            document.getElementById('admin-email').value = data.email || '';
+        } catch (error) {
+            console.error('Fehler beim Laden der E-Mail:', error);
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadAdminEmail);
+
+    // Event-Listener für weitere Antwort hinzufügen
+    document.getElementById('add-option-btn').addEventListener('click', function() {
+        const container = document.getElementById('poll-options-container');
+        const div = document.createElement('div');
+        div.className = 'poll-option';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = 'poll-option';
+        input.placeholder = 'Antwort eingeben';
+        div.appendChild(input);
+        container.appendChild(div);
+    });
+
+    // Fehlerberichte im Admin-Bereich anzeigen
+    async function fetchErrorReports() {
+        try {
+            const response = await fetch('/error_reports');
+            const reports = await response.json();
+            const list = document.createElement('ul');
+            reports.reverse().forEach(report => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${report.timestamp}</strong>: ${report.error}<br><em>Grund:</em> ${report.reason || ''}`;
+                list.appendChild(li);
+            });
+            let container = document.getElementById('error-reports-list');
+            if (!container) {
+                container = document.createElement('section');
+                container.innerHTML = '<h2>Fehlerberichte</h2>';
+                container.id = 'error-reports-list';
+                document.querySelector('main').appendChild(container);
+            }
+            container.innerHTML = '<h2>Fehlerberichte</h2>';
+            container.appendChild(list);
+        } catch (error) {
+            console.error('Fehler beim Laden der Fehlerberichte:', error);
+        }
+    }
+    document.addEventListener('DOMContentLoaded', fetchErrorReports);
+
+    // Fehler-Reporting-Dialog anzeigen und senden
+    function showErrorReportDialog(errorText) {
+        const reason = prompt('Fehler: ' + errorText + '\nBitte gib einen Grund oder eine Beschreibung für den Fehler an:');
+        if (reason) {
+            fetch('/error_reports', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ error: errorText, reason })
+            }).then(() => alert('Fehlerbericht gesendet!'));
+        }
+    }
+    // Beispiel: showErrorReportDialog('Fehler beim Erstellen der Umfrage') aufrufen, wenn ein Fehler auftritt
+
+    function triggerTestError() {
+        try {
+            throw new Error('test error');
+        } catch (e) {
+            showErrorReportDialog(e.message);
+        }
+    }
 </script>
 </body>
 </html>

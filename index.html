@@ -172,44 +172,48 @@
 </script>
 <script>
     // Neuigkeiten abrufen und anzeigen
-    function fetchNews() {
-        const news = JSON.parse(localStorage.getItem('news')) || [
-            { title: 'Willkommen auf unserer Website!', content: 'Wir freuen uns, euch hier zu sehen!' },
-            { title: 'Neues Update', content: 'Wir haben neue Funktionen hinzugefügt!' }
-        ];
-        const newsListe = document.getElementById('news-liste');
-        newsListe.innerHTML = '';
-        news.forEach(item => {
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${item.title}</strong><p>${item.content}</p>`;
-            newsListe.appendChild(li);
-        });
+    async function fetchNews() {
+        try {
+            const response = await fetch('/news.json');
+            if (!response.ok) throw new Error('Fehler beim Abrufen der Neuigkeiten');
+            const news = await response.json();
+            const newsListe = document.getElementById('news-liste');
+            newsListe.innerHTML = '';
+            news.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${item.title}</strong><p>${item.content}</p>`;
+                newsListe.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Neuigkeiten:', error);
+        }
     }
-
     document.addEventListener('DOMContentLoaded', fetchNews);
-</script>
-<script>
-    // Entferne die dynamische Menülogik
-</script>
-<script>
-    // Entferne die Funktion zum Festlegen des Benutzernamens
-</script>
-<script>
+
     // "Über Uns"-Text abrufen und anzeigen
-    function displayAboutText() {
-        const aboutText = localStorage.getItem('aboutText') || 'Wir sind ein Team von leidenschaftlichen Gamern und Entwicklern, die innovative Gaming-Projekte erstellen.';
-        document.getElementById('about-text-display').textContent = aboutText;
+    async function displayAboutText() {
+        try {
+            const response = await fetch('/about.json');
+            if (!response.ok) throw new Error('Fehler beim Abrufen von "Über Uns"');
+            const data = await response.json();
+            document.getElementById('about-text-display').textContent = data.aboutText || 'Wir sind ein Team von leidenschaftlichen Gamern und Entwicklern, die innovative Gaming-Projekte erstellen.';
+        } catch (error) {
+            console.error('Fehler beim Abrufen von "Über Uns":', error);
+        }
     }
-
     document.addEventListener('DOMContentLoaded', displayAboutText);
-</script>
-<script>
-    // Dynamische E-Mail im Footer anzeigen
-    function updateFooterEmail() {
-        const email = localStorage.getItem('adminEmail') || 'thunderflash@tth-projects.de';
-        document.getElementById('footer-email').textContent = email;
-    }
 
+    // Dynamische E-Mail im Footer anzeigen
+    async function updateFooterEmail() {
+        try {
+            const response = await fetch('/admin_email.json');
+            if (!response.ok) throw new Error('Fehler beim Abrufen der E-Mail');
+            const data = await response.json();
+            document.getElementById('footer-email').textContent = data.email || 'thunderflash@tth-projects.de';
+        } catch (error) {
+            document.getElementById('footer-email').textContent = 'thunderflash@tth-projects.de';
+        }
+    }
     document.addEventListener('DOMContentLoaded', updateFooterEmail);
 </script>
 <script>

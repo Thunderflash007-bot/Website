@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "question": "Test",
+    "options": [
+      "Tes1",
+      "D",
+      "C"
+    ],
+    "allowCustomAnswer": true,
+    "allowMultiple": true,
+    "votes": {
+      "Tes1": 1,
+      "C": 1
+    },
+    "votedIps": [
+      "93.230.8.185"
+    ],
+    "ended": true
+  }
+]
