@@ -258,6 +258,32 @@ app.post('/sponsors.json', (req, res) => {
     });
 });
 
+// Endpunkt für gesperrte Seiten abrufen
+app.get('/blocked_pages.json', (req, res) => {
+    fs.readFile(getFilePath('blocked_pages.json'), 'utf8', (err, data) => {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                res.json([]);
+            } else {
+                res.status(500).send('Fehler beim Abrufen der gesperrten Seiten.');
+            }
+        } else {
+            res.json(JSON.parse(data));
+        }
+    });
+});
+// Endpunkt für gesperrte Seiten speichern
+app.post('/blocked_pages.json', (req, res) => {
+    const blocked = req.body;
+    fs.writeFile(getFilePath('blocked_pages.json'), JSON.stringify(blocked, null, 2), (err) => {
+        if (err) {
+            res.status(500).send('Fehler beim Speichern der gesperrten Seiten.');
+        } else {
+            res.status(201).send('Gesperrte Seiten erfolgreich gespeichert.');
+        }
+    });
+});
+
 // Allgemeine Funktion zum Abrufen von JSON-Dateien (nur für .json, nach allen spezifischen Routen!)
 app.get('/:file', (req, res) => {
     if (!req.params.file.endsWith('.json')) {

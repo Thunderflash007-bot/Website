@@ -148,6 +148,20 @@
         </form>
         <ul id="sponsor-liste"></ul>
     </section>
+    <section>
+        <h2>Seitenverwaltung</h2>
+        <ul id="seiten-liste"></ul>
+    </section>
+    <section>
+        <h2>Teamverwaltung</h2>
+        <form id="team-form">
+            <input type="text" id="team-name" placeholder="Name" required>
+            <input type="text" id="team-role" placeholder="Rolle" required>
+            <input type="url" id="team-image" placeholder="Bild-URL (optional)">
+            <button type="submit">Teammitglied hinzufügen</button>
+        </form>
+        <ul id="team-liste-admin"></ul>
+    </section>
 </main>
 <footer>
     <p>Kontakt: <span id="footer-email">support@tth-projects.de</span></p>
@@ -763,6 +777,118 @@
         fetchSponsors();
     });
     document.addEventListener('DOMContentLoaded', fetchSponsors);
+
+    async function fetchPages() {
+        // Liste aller HTML-Seiten im Projekt (hartkodiert, da kein echtes Filesystem im Browser)
+        const pages = [
+            'index.html', 'polls.html', 'privacy.html', 'admin.html', 'admin-messages.html', 'ranks.html', 'register.html', 'login.html', 'team.html'
+        ];
+        let blocked = [];
+        try {
+            const resp = await fetch('/blocked_pages.json');
+            if (resp.ok) blocked = await resp.json();
+        } catch {}
+        const seitenListe = document.getElementById('seiten-liste');
+        seitenListe.innerHTML = '';
+        pages.forEach(page => {
+            const li = document.createElement('li');
+            li.textContent = page + (blocked.includes(page) ? ' (gesperrt)' : '');
+            const btn = document.createElement('button');
+            btn.textContent = blocked.includes(page) ? 'Entsperren' : 'Sperren';
+            btn.onclick = async () => {
+                if (blocked.includes(page)) {
+                    blocked = blocked.filter(p => p !== page);
+                } else {
+                    blocked.push(page);
+                }
+                await fetch('/blocked_pages.json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(blocked),
+                });
+                fetchPages();
+            };
+            li.appendChild(btn);
+            seitenListe.appendChild(li);
+        });
+    }
+    document.addEventListener('DOMContentLoaded', fetchPages);
+
+    async function fetchTeamAdmin() {
+        try {
+            const response = await fetch('/team.json');
+            let team = await response.json();
+            if (!Array.isArray(team)) team = [];
+            const teamListe = document.getElementById('team-liste-admin');
+            teamListe.innerHTML = '';
+            team.forEach((member, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <img src="${member.image || ''}" alt="${member.name}" class="team-image-small">
+                    <strong>${member.name}</strong> (${member.role})
+                    <button onclick="moveTeamMember(${idx}, -1)">⬆️</button>
+                    <button onclick="moveTeamMember(${idx}, 1)">⬇️</button>
+                    <button onclick="removeTeamMember(${idx})">Entfernen</button>
+                `;
+                teamListe.appendChild(li);
+            });
+        } catch (e) {
+            console.error('Fehler beim Laden der Teamdaten:', e);
+        }
+    }
+    async function saveTeam(team) {
+        await fetch('/team.json', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(team),
+        });
+    }
+    document.getElementById('team-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alert('Fehler: Teammitglied konnte nicht erstellt werden!');
+        return;
+        // Der folgende Code wird nicht ausgeführt:
+        // const name = document.getElementById('team-name').value;
+        // const role = document.getElementById('team-role').value;
+        // const image = document.getElementById('team-image').value;
+        // let team = [];
+        // try {
+        //     const resp = await fetch('/team.json');
+        //     if (resp.ok) team = await resp.json();
+        //     if (!Array.isArray(team)) team = [];
+        // } catch {}
+        // team.push({ name, role, image });
+        // await saveTeam(team);
+        // document.getElementById('team-form').reset();
+        // fetchTeamAdmin();
+    });
+    async function removeTeamMember(idx) {
+        let team = [];
+        try {
+            const resp = await fetch('/team.json');
+            if (resp.ok) team = await resp.json();
+            if (!Array.isArray(team)) team = [];
+        } catch {}
+        team.splice(idx, 1);
+        await saveTeam(team);
+        fetchTeamAdmin();
+    }
+    async function moveTeamMember(idx, dir) {
+        let team = [];
+        try {
+            const resp = await fetch('/team.json');
+            if (resp.ok) team = await resp.json();
+            if (!Array.isArray(team)) team = [];
+        } catch {}
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= team.length) return;
+        const temp = team[idx];
+        team[idx] = team[newIdx];
+        team[newIdx] = temp;
+        await saveTeam(team);
+        fetchTeamAdmin();
+    }
+    document.addEventListener('DOMContentLoaded', fetchTeamAdmin);
 </script>
 </body>
 </html>

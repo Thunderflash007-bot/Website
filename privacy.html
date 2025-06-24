@@ -66,6 +66,28 @@
     }
 
     document.addEventListener('DOMContentLoaded', fetchPrivacyText);
+
+    // Sperr-Check für gesperrte Seiten
+    (async function() {
+        const page = location.pathname.split('/').pop();
+        if (page !== 'blocked.html') {
+            try {
+                const resp = await fetch('/blocked_pages.json');
+                if (resp.ok) {
+                    const blocked = await resp.json();
+                    if (blocked.includes(page)) {
+                        // Prüfe Admin-Verifizierung
+                        const userIPv6 = localStorage.getItem('ipv6Address');
+                        const verifiedDevices = JSON.parse(localStorage.getItem('verifiedDevices')) || [];
+                        const encryptedIPv6 = userIPv6 ? btoa(userIPv6) : null;
+                        if (!encryptedIPv6 || !verifiedDevices.includes(encryptedIPv6)) {
+                            window.location.href = `blocked.html?page=${encodeURIComponent(page)}`;
+                        }
+                    }
+                }
+            } catch {}
+        }
+    })();
 </script>
 </body>
 </html>

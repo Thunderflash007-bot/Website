@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gaming Projekte</title>
+    <title>TTH Projects</title>
     <link rel="stylesheet" href="styles.css">
     <script src="script.js"></script>
     <style>
@@ -40,6 +40,32 @@
         #verification-popup button {
             padding: 5px 10px;
         }
+
+        #cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #222;
+            color: #fff;
+            padding: 1rem;
+            text-align: center;
+            z-index: 9999;
+        }
+
+        #cookie-banner a {
+            color: #ffcc00;
+        }
+
+        #cookie-ok-btn {
+            margin-left: 1rem;
+            background: #ffcc00;
+            color: #222;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -49,6 +75,10 @@
         <input type="text" id="verification-code" placeholder="Verifizierungscode eingeben">
         <button onclick="verifyCode()">Verifizieren</button>
         <button onclick="closeVerificationPopup()">Schließen</button>
+    </div>
+    <div id="cookie-banner">
+        Diese Website verwendet Cookies, um die bestmögliche Funktionalität zu gewährleisten. <a href="privacy.html">Mehr erfahren</a>
+        <button id="cookie-ok-btn">OK</button>
     </div>
     <header>
         <h1>Gaming Projekte</h1>
@@ -311,6 +341,32 @@
         }
     }
     document.addEventListener('DOMContentLoaded', fetchSponsoren);
+
+    document.getElementById('cookie-ok-btn').onclick = function() {
+        document.getElementById('cookie-banner').style.display = 'none';
+    };
+
+    // Sperr-Check für gesperrte Seiten
+    (async function() {
+        const page = location.pathname.split('/').pop();
+        if (page !== 'blocked.html') {
+            try {
+                const resp = await fetch('/blocked_pages.json');
+                if (resp.ok) {
+                    const blocked = await resp.json();
+                    if (blocked.includes(page)) {
+                        // Prüfe Admin-Verifizierung
+                        const userIPv6 = localStorage.getItem('ipv6Address');
+                        const verifiedDevices = JSON.parse(localStorage.getItem('verifiedDevices')) || [];
+                        const encryptedIPv6 = userIPv6 ? btoa(userIPv6) : null;
+                        if (!encryptedIPv6 || !verifiedDevices.includes(encryptedIPv6)) {
+                            window.location.href = `blocked.html?page=${encodeURIComponent(page)}`;
+                        }
+                    }
+                }
+            } catch {}
+        }
+    })();
 </script>
 </body>
 </html>

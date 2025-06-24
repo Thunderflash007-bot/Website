@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seite gesperrt</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Seite gesperrt</h1>
+    </header>
+    <main>
+        <p>Diese Seite ist aktuell gesperrt.</p>
+        <button id="admin-unlock-btn">Als Admin entsperren</button>
+        <button onclick="window.location.href='index.html'">Zur Startseite</button>
+        <div id="admin-unlock-popup" class="popup hidden">
+            <div class="popup-content">
+                <h3>Admin-Verifizierung</h3>
+                <p>Bitte gib den Admin-Verifizierungscode ein:</p>
+                <input type="text" id="unlock-code" placeholder="Verifizierungscode">
+                <button onclick="verifyUnlockCode()">Bestätigen</button>
+                <button onclick="closeUnlockPopup()">Abbrechen</button>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>Kontakt: <span id="footer-email">support@tth-projects.de</span></p>
+    </footer>
+    <script>
+        document.getElementById('admin-unlock-btn').onclick = function() {
+            document.getElementById('admin-unlock-popup').classList.remove('hidden');
+        };
+        function closeUnlockPopup() {
+            document.getElementById('admin-unlock-popup').classList.add('hidden');
+        }
+        function verifyUnlockCode() {
+            const code = document.getElementById('unlock-code').value;
+            const validCodes = JSON.parse(localStorage.getItem('validCodes')) || ['2q'];
+            if (validCodes.includes(code)) {
+                // Gehe zur eigentlich gewünschten Seite zurück
+                const params = new URLSearchParams(window.location.search);
+                const page = params.get('page');
+                if (page) {
+                    window.location.href = page;
+                } else {
+                    alert('Kein Ziel gefunden.');
+                }
+            } else {
+                alert('Ungültiger Code!');
+            }
+        }
+    </script>
+</body>
+</html>
