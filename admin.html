@@ -6,7 +6,7 @@
     <title>Admin Bereich</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body onload="showAdminPasswordPopup()">
 <header>
     <h1>Admin Bereich</h1>
     <nav>
@@ -14,10 +14,11 @@
             <li><a href="index.html">Startseite</a></li>
             <li><a href="admin.html">Admin</a></li>
             <li><a href="admin-messages.html">Nachrichten</a></li>
+            <li><a href="admin-ai.html">KI-Chat</a></li>
         </ul>
     </nav>
 </header>
-<main>
+<main id="admin-main" style="display:none;">
     <section>
         <h2>Projektverwaltung</h2>
         <button id="projekt-erstellen-btn" onclick="openProjectForm()">+ Projekt erstellen</button>
@@ -162,8 +163,16 @@
         </form>
         <ul id="team-liste-admin"></ul>
     </section>
+    <section>
+        <h2>Impressum bearbeiten</h2>
+        <form id="impressum-form">
+            <label for="impressum-text">Impressum:</label>
+            <textarea id="impressum-text" placeholder="Impressumstext eingeben" required></textarea>
+            <button type="submit">Speichern</button>
+        </form>
+    </section>
 </main>
-<footer>
+<footer id="admin-footer" style="display:none;">
     <p>Kontakt: <span id="footer-email">support@tth-projects.de</span></p>
 </footer>
 <div id="password-popup" class="popup hidden">
@@ -889,6 +898,56 @@
         fetchTeamAdmin();
     }
     document.addEventListener('DOMContentLoaded', fetchTeamAdmin);
+
+    // Impressum speichern
+    document.getElementById('impressum-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const impressumText = document.getElementById('impressum-text').value;
+        try {
+            const response = await fetch('/impressum.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ impressumText }),
+            });
+            if (response.ok) {
+                alert('Impressum erfolgreich gespeichert!');
+            } else {
+                alert('Fehler beim Speichern des Impressums.');
+            }
+        } catch (error) {
+            console.error('Fehler beim Speichern des Impressums:', error);
+        }
+    });
+    // Impressum laden
+    async function loadImpressum() {
+        try {
+            const response = await fetch('/impressum.json');
+            if (!response.ok) throw new Error('Fehler beim Abrufen des Impressums');
+            const data = await response.json();
+            document.getElementById('impressum-text').value = data.impressumText || '';
+        } catch (error) {
+            console.error('Fehler beim Laden des Impressums:', error);
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadImpressum);
+
+    function showAdminPasswordPopup() {
+        document.getElementById('password-popup').classList.remove('hidden');
+        document.getElementById('admin-main').style.display = 'none';
+        document.getElementById('admin-footer').style.display = 'none';
+    }
+    function verifyAdminPassword() {
+        const input = document.getElementById('admin-password-input').value;
+        const validCodes = JSON.parse(localStorage.getItem('validCodes')) || ['2q'];
+        if (validCodes.includes(input)) {
+            document.getElementById('password-popup').classList.add('hidden');
+            document.getElementById('admin-main').style.display = '';
+            document.getElementById('admin-footer').style.display = '';
+        } else {
+            alert('Falscher Code!');
+            window.location.href = 'index.html';
+        }
+    }
 </script>
 </body>
 </html>

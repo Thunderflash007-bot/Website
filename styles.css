@@ -292,3 +292,82 @@ form textarea {
         transform: translateY(0);
     }
 }
+
+@media (max-width: 900px) {
+    main {
+        padding: 1rem;
+    }
+    section {
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    .projekt-liste {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
+    nav ul {
+        flex-direction: column;
+        gap: 0.5rem;
+        margin: 0.5rem 0 0;
+    }
+    main {
+        padding: 0.5rem;
+    }
+    section {
+        padding: 0.5rem;
+        font-size: 1rem;
+    }
+    .projekt-liste {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .projekt {
+        padding: 0.5rem;
+        font-size: 1rem;
+    }
+    form input, form textarea, form select {
+        font-size: 1rem;
+        padding: 0.4rem;
+    }
+    button, .popup-content button {
+        font-size: 1rem;
+        padding: 0.4rem 0.8rem;
+    }
+    .popup-content {
+        width: 95vw;
+        min-width: unset;
+        max-width: 400px;
+        padding: 10px;
+    }
+    .team-image, .team-image-small {
+        width: 80px;
+        height: 80px;
+    }
+    #chat-container {
+        padding: 0.5rem;
+        max-width: 98vw;
+    }
+    #chat-log {
+        height: 200px;
+        padding: 0.5rem;
+    }
+}
+
+@media (max-width: 400px) {
+    header h1 {
+        font-size: 1.1rem;
+    }
+    .popup-content {
+        width: 99vw;
+        padding: 5px;
+    }
+    button, .popup-content button {
+        font-size: 0.9rem;
+        padding: 0.3rem 0.5rem;
+    }
+}

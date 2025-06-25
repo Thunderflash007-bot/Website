@@ -4,6 +4,7 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const express = require('express');
+const axios = require('axios');
 
 const app = express();
 const DEFAULT_PORT = process.env.PORT || 4003;
@@ -282,6 +283,36 @@ app.post('/blocked_pages.json', (req, res) => {
             res.status(201).send('Gesperrte Seiten erfolgreich gespeichert.');
         }
     });
+});
+
+// KI-Chat: Anfrage an OpenAI weiterleiten
+app.post('/chatgpt', async (req, res) => {
+    const { message, history } = req.body;
+    const apiKey = process.env.OPENAI_API_KEY || 'DEIN_OPENAI_API_KEY_HIER'; // Trage hier deinen Key ein oder nutze Umgebungsvariable
+    if (!apiKey || apiKey === 'DEIN_OPENAI_API_KEY_HIER') {
+        return res.status(500).json({ error: 'OpenAI API-Key fehlt!' });
+    }
+    try {
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+            model: 'gpt-4o', // oder 'gpt-4.0' oder 'gpt-4.1', je nach Verfügbarkeit
+            messages: [
+                ...(Array.isArray(history) ? history : []),
+                { role: 'user', content: message }
+            ],
+            max_tokens: 500,
+            temperature: 0.7
+        }, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const answer = response.data.choices[0].message.content;
+        res.json({ answer });
+    } catch (error) {
+        console.error('Fehler bei OpenAI:', error.response?.data || error.message);
+        res.status(500).json({ error: 'Fehler bei der KI-Antwort.' });
+    }
 });
 
 // Allgemeine Funktion zum Abrufen von JSON-Dateien (nur für .json, nach allen spezifischen Routen!)
